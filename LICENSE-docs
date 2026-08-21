@@ -1,0 +1,22 @@
+# Documentation licence
+
+The prose in `docs/` is licensed under the
+**Creative Commons Attribution 4.0 International License (CC BY 4.0)**.
+
+Copyright (c) 2026 Tyler Meuse
+
+You are free to share and adapt this material for any purpose, including
+commercially, provided you give appropriate credit, link to the licence, and
+indicate if changes were made.
+
+- Human-readable summary: https://creativecommons.org/licenses/by/4.0/
+- Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Everything outside `docs/` — templates, hooks, and scripts — is MIT licensed
+instead; see [LICENSE](LICENSE). The split is explained in
+[docs/decisions.md](docs/decisions.md) #3.
+
+**VERIFY:** this file states the licence by reference rather than embedding
+the full CC BY 4.0 legal code. That is common practice and Creative Commons
+supports it, but if this repository is formally published, consider vendoring
+the full text so the terms travel with a copy that has no network access.
