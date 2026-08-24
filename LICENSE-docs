@@ -12,11 +12,12 @@ indicate if changes were made.
 - Human-readable summary: https://creativecommons.org/licenses/by/4.0/
 - Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
 
-Everything outside `docs/` — templates, hooks, and scripts — is MIT licensed
-instead; see [LICENSE](LICENSE). The split is explained in
+Everything outside `docs/` (templates, hooks, and scripts) is MIT licensed
+instead. See [LICENSE](LICENSE). The split is explained in
 [docs/decisions.md](docs/decisions.md) #3.
 
 **VERIFY:** this file states the licence by reference rather than embedding
-the full CC BY 4.0 legal code. That is common practice and Creative Commons
-supports it, but if this repository is formally published, consider vendoring
-the full text so the terms travel with a copy that has no network access.
+the full CC BY 4.0 legal code. That's common practice and Creative Commons
+supports it, but if this repository is formally published, consider
+vendoring the full text so the terms travel with a copy that has no network
+access.
