@@ -6,8 +6,13 @@ have been applied to a real project and the process has settled. Per
 one document with an expiry.
 
 **Last updated:** 2026-08-21. Second session: added status/LLM disclosure
-and writing-style requirements, and rewrote every existing document to
-follow them.
+and writing-style requirements, rewrote every existing document to follow
+them, then added a named rule against telegraphic status-note fragments.
+
+**Scope confirmed by the maintainer this session:** conformIT is meant to
+cover infrastructure, documentation, safety, security, privacy, design
+style, and writing style for software projects generally, not just the
+categories already drafted. See "gaps against that scope" below.
 
 ## What is true right now
 
@@ -88,3 +93,26 @@ but don't themselves fix:
   check? Leaning toward a hook, since the whole point of this project is
   that unenforced standards drift, and this is the standard that just
   proved it by drifting within one session.
+
+## Gaps against the confirmed scope
+
+Two categories the maintainer named explicitly aren't covered as their own
+documents yet:
+
+- **Privacy**, as distinct from security. `security-posture.md` touches
+  it in passing (rule 7, on auditable stores; rule 1, on not pasting
+  secrets into a chat that gets logged), but there's no treatment of user
+  data handling, retention, deletion, or third-party data sharing as its
+  own subject. Worth a dedicated `privacy.md`, or a clearly separated
+  section inside `security-posture.md` if the two turn out not to need
+  separate documents.
+- **Design style** meaning visual and interaction design, not the
+  structural `design-principles.md` that exists today (services layer,
+  declare/apply/drift, and so on). Nothing in the survey covered UI/UX
+  conventions in a generalizable way; `anjunatree`'s palette-validator
+  practice is the closest example and it's cited in
+  `design-principles.md` rule 10, but that's one repo's accessibility gate,
+  not a style standard.
+
+Both need the same treatment as everything else here: survey first, write
+second, cite sources, state cost. Not started.

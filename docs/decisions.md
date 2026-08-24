@@ -148,3 +148,48 @@ fixed, per [rules-of-engagement.md](rules-of-engagement.md) rule 4.
 theater and the softer style guidance in
 [writing-style.md](writing-style.md) does the real work on its own, the hard
 rule could be dropped. No evidence either way yet.
+
+## 8. Telegraphic status fragments are a named anti-pattern
+
+Follow-up to #7, flagged by the maintainer against a real example from
+another project: a status note compressed into label-fragments and
+semicolon-spliced clauses with no subjects, reading like internal shorthand
+rather than something a person wrote for another person.
+
+**Why:** dropping this rule into the general "avoid the tells" list in
+[writing-style.md](writing-style.md) would have buried it. The maintainer's
+example was specific enough, and different enough from the em-dash problem,
+to earn its own section with a worked before/after.
+
+**What it cost:** a re-scan of every existing document for the pattern. It
+turned out clean; nothing in `docs/` used standalone label-fragments, and
+the semicolons already present all join full independent clauses rather
+than dropped-subject shorthand, so no rewrite was needed this time. Worth
+noting because the em-dash rule (#7) did require a full rewrite and this
+one didn't; the two failures aren't equally likely to recur.
+
+**What would justify revisiting:** if this turns out to be the same
+underlying problem as #7 (unreviewed first-draft output) rather than a
+distinct pattern, the two sections could merge.
+
+## 9. One standard for humans and models, not a model standard with a human exemption
+
+Prompted by the maintainer correcting the framing of
+[rules-of-engagement.md](rules-of-engagement.md), which originally read
+"written at the model, but they bind the human too."
+
+**Why:** that phrasing put the model first and treated human compliance as
+an afterthought, which is backwards from the actual point. The whole
+premise of this project is that good practice doesn't change based on who
+is typing. A rule that only an AI needs isn't an engineering standard, it's
+a leash, and this project isn't building one of those.
+
+**What it cost:** a rewrite of the opening of
+[rules-of-engagement.md](rules-of-engagement.md). Small, but worth
+recording because the original framing was wrong on a point the whole
+project depends on, not a style nit.
+
+**What would justify revisiting:** if a genuinely AI-specific rule turns up
+that has no human equivalent (something about context windows or session
+boundaries, say), it still belongs in this document, but should be marked
+as such rather than implied to be universal when it isn't.

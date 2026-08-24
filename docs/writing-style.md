@@ -28,6 +28,44 @@ grep -rn "—" docs/ README.md
 Run that before a commit that touches documentation. It should return
 nothing.
 
+## No telegraphic status fragments
+
+The other tell, and the one people notice even when the em dashes are gone:
+compressing an explanation into clipped fragments strung together with
+semicolons and colon-labels, as if writing were billed by the character.
+
+Before:
+
+> Scaffold. Every adapter action returns Error::NotImplemented; the shape
+> is real, the behaviour isn't. Next: make HID real against a live
+> NanoKVM/PiKVM.
+
+After:
+
+> This is a scaffold. Every adapter action currently returns
+> Error::NotImplemented, so the interface shape is real but none of the
+> behaviour is implemented yet. The next step is making HID actually work
+> against a live NanoKVM or PiKVM.
+
+Same information, and it isn't longer by much. The difference is that the
+second version has subjects and connectives (this, so, the next step is)
+instead of dropping them to sound efficient. Specific patterns to catch:
+
+- **A one- or two-word sentence used as a label**, like "Scaffold." or
+  "Status:" standing alone. Fold it into the sentence that follows.
+- **A semicolon splicing two independent clauses with no connective
+  word.** If "so," "because," or "but" belongs between them, put it there
+  instead of a semicolon.
+- **"Next:" or "TODO:" as a colon-label rather than a sentence opener.**
+  Write "the next step is" or "still to do:" as part of a real sentence, or
+  use an actual list if there's more than one item.
+
+This shows up most in status notes (`STATE.md`, PR descriptions, commit
+bodies) because that's where people reach for shorthand under the belief
+that terse reads as more technical. It doesn't. A person who actually knows
+the system writes status updates in real sentences; the clipped notation
+style is what shows up when the writing wasn't reviewed.
+
 ## Avoid the tells
 
 None of these make a sentence wrong. They make it read like it was

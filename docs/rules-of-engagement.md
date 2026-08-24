@@ -1,8 +1,9 @@
 # Rules of Engagement
 
-How an AI agent is expected to work in a conforming repo. These are written
-at the model, but they bind the human too. Most of them are just good
-practice that AI assistance makes easier to skip.
+One standard for whoever is doing the work, human or model. Nothing here is
+an AI-specific rule with a human exemption. Most of these are just good
+practice that AI assistance makes easier to skip, which is why they need to
+be written down instead of assumed.
 
 Each rule states what it costs, because a rule with no stated cost reads as
 free, and rules that read as free get ignored the first time they aren't.
