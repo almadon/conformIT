@@ -25,9 +25,13 @@ categories already drafted. See "gaps against that scope" below.
   sub-repos), snapjudgement, tooling-as. The survey read committed docs and
   configs only. Session transcripts were deliberately not mined, a call made
   at kickoff.
-- **`docs/decisions.md` records seven decisions**, including the one genuine
-  conflict found between existing repos (commit format) and the two added
-  in this session (status/LLM disclosure, writing style).
+- **`docs/decisions.md` records nine decisions** as of 2026-08-24, including
+  the one genuine conflict found between existing repos (commit format) and
+  entries added across later sessions (status/LLM disclosure, writing
+  style, and the one-standard-for-humans-and-models reframe). This count
+  was stale here (said "seven") until the first external audit, of `novak`,
+  flagged it: exactly the drift this file exists to catch, in the one
+  document whose job is being current.
 - **conformIT's own docs violated its own writing-style rule** on the first
   pass: 108 em dashes across the set, found by grep right after the rule was
   written, then fixed. Recorded as decision #7 rather than quietly cleaned
