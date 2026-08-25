@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# conformIT: writing-style check for staged documentation.
+# See docs/writing-style.md. Bypass once with: git commit --no-verify
+#
+# Portable to bash 3.2 (macOS system bash).
+set -uo pipefail
+
+# The rule's stated scope is docs/ and README.md. Prose that the software
+# reads at runtime (prompts, fixtures) is data rather than documentation and
+# is deliberately out of scope, per documentation-standard.md.
+FILES="$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '(^|/)README\.md$|(^|/)docs/.*\.md$' || true)"
+
+[ -z "$FILES" ] && exit 0
+
+# A naive grep for the character reports three false positives in
+# conformIT's own writing-style.md: the "before" example, the grep command
+# shown in a fence, and the sentence describing the check. A rule whose
+# check cannot pass on the document defining it teaches people to ignore
+# its output, so the scan excludes the three places an em dash is being
+# quoted rather than used:
+#
+#   1. fenced code blocks
+#   2. inline code spans
+#   3. lines introduced as a Before:/After: example
+#
+# An em dash that is genuinely wanted (a quotation from a source that uses
+# one) gets an explicit marker on the line: <!-- conformit:allow -->
+scan() {
+  awk -v file="$1" '
+    /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+    fence { next }
+    /conformit:allow/ { next }
+    /^[[:space:]]*(Before|After):/ { next }
+    {
+      line = $0
+      gsub(/`[^`]*`/, "", line)
+      if (index(line, "\342\200\224") > 0)
+        printf "%s:%d: %s\n", file, NR, $0
+    }
+  ' "$1"
+}
+
+HITS=""
+for f in $FILES; do
+  [ -f "$f" ] || continue
+  found="$(scan "$f")"
+  [ -n "$found" ] && HITS="$HITS$found"$'\n'
+done
+
+if [ -n "$(printf '%s' "$HITS" | tr -d '[:space:]')" ]; then
+  {
+    echo
+    echo "pre-commit: em dashes in staged documentation."
+    echo
+    printf '%s' "$HITS" | sed 's/^/  /'
+    echo
+    echo "  An em dash is almost always standing in for a comma, a period, a"
+    echo "  colon, or parentheses. Pick the one the sentence actually wants;"
+    echo "  swapping the character alone is not the fix."
+    echo
+    echo "  See docs/writing-style.md."
+    echo "  Quoting one on purpose: add <!-- conformit:allow --> to the line."
+    echo "  Bypass once: git commit --no-verify"
+    echo
+  } >&2
+  exit 1
+fi
+
+exit 0

@@ -193,3 +193,42 @@ project depends on, not a style nit.
 that has no human equivalent (something about context windows or session
 boundaries, say), it still belongs in this document, but should be marked
 as such rather than implied to be universal when it isn't.
+
+## 10. conformIT is exempt from part of its own required-file list
+
+Prompted by the `novak` audit (novak PR #29, the first external application
+of this standard), which ran `documentation-standard.md`'s required-file
+list against this repo and found `CLAUDE.md`, `CHANGELOG.md`,
+`docs/architecture.md`, `docs/security.md`, and `docs/credits.md` all
+absent. The audit's own text flagged this as something needing a decision
+rather than a silent gap, which is the right instinct: an unrecorded
+divergence from your own rule is exactly the kind of thing
+[documentation-standard.md](documentation-standard.md) exists to prevent.
+
+**Chosen:** `docs/architecture.md`, `docs/security.md`, and
+`docs/credits.md` do not apply here and are not planned. `CLAUDE.md` and
+`CHANGELOG.md` do apply and are open gaps, tracked in
+[STATE.md](STATE.md), not exemptions.
+
+**Why:** the first three assume a system with running components, trust
+boundaries, and dependencies to declare. This repo is prose plus two git
+hooks. `architecture.md` would describe two files calling each other.
+`security.md` would restate `security-posture.md` with no project-specific
+instance to add. `credits.md` would be a near-empty table, since the whole
+point of the survey method (decision-in-progress, see the provenance
+section of the README) is that the standards are derived from patterns
+already observed, not built on adopted dependencies. `CLAUDE.md` and
+`CHANGELOG.md` have no such argument: this repo has AI-assisted commits
+that would benefit from a working agreement, and it has released versions
+worth a changelog once tagging starts.
+
+**What it cost:** the required-file list in `documentation-standard.md`
+now reads as universal when three of its nine entries are conditional. That
+was already implicit for `CONTRIBUTING.md` and `VISION.md`, which the same
+document already marks as conditional; this makes explicit that
+"required" was never meant to be read as "every file, every repo."
+
+**What would justify revisiting:** if conformIT ever adopts a real
+dependency (a linter, a CI action, a package this repo requires rather
+than one it's documenting), `docs/credits.md` becomes real and this
+decision narrows to cover only `architecture.md` and `security.md`.

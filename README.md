@@ -19,10 +19,10 @@ Two halves, and both are required:
 - **`docs/`**: the standards themselves. Prose, with reasoning and cost
   stated, because a rule whose justification isn't recorded gets
   re-litigated or quietly reversed by someone who assumed it was arbitrary.
-- **`templates/` + `scripts/`**: the machinery that applies them. A
-  `CLAUDE.md`, git hooks, a settings baseline, and doc scaffolding that get
-  installed into a project so conformance is the default rather than an act
-  of discipline.
+- **`templates/` + `scripts/`**: the machinery that applies them, so
+  conformance is the default rather than an act of discipline. Git hooks
+  exist today. A `CLAUDE.md`, a settings baseline, and doc scaffolding are
+  designed but not yet built; see [STATE.md](docs/STATE.md) for what's real.
 
 Standards nobody enforces drift. Enforcement nobody understands gets
 disabled. That's why neither half ships alone.
