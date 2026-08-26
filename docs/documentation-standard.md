@@ -12,7 +12,7 @@ Anything a future reader would otherwise have to re-derive belongs in prose.
 |---|---|---|
 | `README.md` | What this is, how to run it, where to go next, project status, LLM use | Nobody can start |
 | `LICENSE` | The licence, from the first commit | All rights reserved by accident |
-| `CLAUDE.md` | Working agreement for AI agents in this repo | Every session re-derives the conventions |
+| `AGENTS.md` | Working agreement for AI agents in this repo | Every session re-derives the conventions |
 | `docs/STATE.md` | What is true right now, including what's broken | Status lives in someone's head |
 | `docs/decisions.md` | Numbered decisions with reasoning and cost | Settled questions get re-litigated |
 | `docs/architecture.md`* | How the pieces fit and why each is where it is | Structure is only legible by reading all the code |
@@ -35,6 +35,16 @@ from a top-level `SECURITY.md`, which GitHub gives special handling
 ("Report a vulnerability") and which covers how to report a vulnerability,
 not what the trust model is. A project with both should have each point at
 the other so nobody conflates them.
+
+`AGENTS.md` is the [Linux Foundation-stewarded](https://agents.md), tool-
+agnostic convention, not a Claude-specific one, and is what's actually
+loaded into an agent's context: terse, operative, no fixed schema. If a
+tool needs its own filename (Claude Code reads `CLAUDE.md`, not
+`AGENTS.md`, as of this writing), that file is a one-line pointer,
+`@AGENTS.md`, not a second copy of the content. See
+[decisions.md](decisions.md) #15 and
+[`templates/AGENTS.md`](../templates/AGENTS.md) /
+[`templates/CLAUDE.md`](../templates/CLAUDE.md).
 
 `docs/README.md` is an index of the above. A directory listing is not
 navigation.

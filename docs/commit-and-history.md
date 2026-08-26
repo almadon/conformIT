@@ -80,8 +80,37 @@ changes really are one-liners.
 
 ## AI authorship
 
-Commits with substantial model authorship carry a trailer naming the
-model, disclosed rather than hidden. See
+Commits with substantial model authorship carry an `Assisted-by:`
+trailer:
+
+```
+Assisted-by: AGENT_NAME:MODEL_VERSION [TOOL1] [TOOL2]
+```
+
+`AGENT_NAME` is the coding tool (`Claude Code`, `Codex`, `Copilot`), not
+the model vendor. `MODEL_VERSION` is the specific model. The bracketed
+tools are optional, specialised analysis tools actually used (a linter, a
+type checker), not ordinary development tools (`git`, a compiler, an
+editor). Example:
+
+```
+Assisted-by: Claude Code:claude-sonnet-5
+```
+
+This is the [Linux kernel's own convention](https://docs.kernel.org/process/coding-assistants.html),
+adopted independently by Fedora, Rocky Linux, OpenTelemetry, the Apache
+Software Foundation, LLVM, and QEMU, and it replaces the older
+`Co-Authored-By:` pattern for AI specifically. `Co-Authored-By:` still
+means what it always meant: a human who worked on the change.
+
+**An AI never gets a `Signed-off-by:`.** Where a project uses the
+Developer Certificate of Origin, `Signed-off-by:` certifies that the
+signer wrote the change or has the right to submit it under the
+project's licence, and only a human can attest to that. `Assisted-by:`
+documents that a tool helped; `Signed-off-by:` stays entirely human,
+even on a commit an AI wrote most of.
+
+Disclosed, not hidden, either way. See
 [licensing-and-provenance](licensing-and-provenance.md) on why a trailer
 isn't a provenance answer on its own.
 

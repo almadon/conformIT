@@ -5,7 +5,17 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-08-26. Sixth session, same day as the fifth: added
+**Last updated:** 2026-08-26. Seventh session, same day: surveyed
+external standards for AI-assisted work and adopted two (decision #15).
+`AGENTS.md` replaces `CLAUDE.md` as the required agent-instructions file
+(`CLAUDE.md` is now a one-line `@AGENTS.md` import, Anthropic's own
+pattern); AI-authored commits carry `Assisted-by:`, the Linux kernel's
+convention, instead of `Co-Authored-By:`. Both templates built
+(`templates/AGENTS.md`, `templates/CLAUDE.md`) and applied to conformIT's
+own root immediately, closing the `CLAUDE.md` gap this file has tracked
+since the fourth session, just not in the shape originally planned.
+
+Sixth session, same day as the fifth: added
 sensitive-content scanning (secrets via gitleaks, personal emails, private
 URLs) with a CRIT severity tier that's the one exception to "audit never
 fails the job" (decision #13), and a copyable README scaffold plus a
@@ -85,15 +95,15 @@ categories already drafted. See "gaps against that scope" below.
   yet observed running for real on a schedule, only tested by running
   the same script locally against the same repos; see decision #12.
 - **`templates/` is partially populated.** `.githooks/commit-msg`,
-  `.githooks/pre-commit` (the em-dash check), `.gitmessage`, and now
-  `docs/README.md` (the full name/description/status/warranty/LLM-use
-  scaffold, decision #14) exist and are tested or, for the README
-  scaffold, at least reviewed by eye. Still missing: a `CLAUDE.md`
-  distilled from the Rules of Engagement, skeletons for the other
+  `.githooks/pre-commit` (the em-dash check), `.gitmessage`,
+  `docs/README.md` (decision #14), and now `AGENTS.md` plus a `CLAUDE.md`
+  stub (decision #15) exist. Still missing: skeletons for the other
   required `docs/` files, and a `.claude/settings.json` baseline.
 - **The pre-commit hook exists but isn't installed anywhere, including
   here.** conformIT's own repo doesn't run it yet; per decision #10,
-  `CLAUDE.md` and `CHANGELOG.md` were prioritized as the open gaps first.
+  `AGENTS.md` (then still `CLAUDE.md`) and `CHANGELOG.md` were
+  prioritized as the open gaps first. `AGENTS.md` is done now;
+  `CHANGELOG.md` is the one that's still open.
   Its scope is `docs/` and `README.md` only, matching writing-style.md's
   stated scope, which is why two pre-ban em dashes in `templates/` (a
   comment and a `.gitmessage` line, both predating decision #7) survived
@@ -112,8 +122,10 @@ but don't themselves fix:
 1. **Eight of nine repos have no `LICENSE`.** They default to all rights
    reserved, which is almost certainly not the intent for at least some of
    them. This is the single highest-value fix available and it's cheap.
-2. **No repo has a `CLAUDE.md`.** Every session re-derives conventions that
-   are already written down in prose the model isn't being pointed at.
+2. **No repo has an agent-instructions file** (`CLAUDE.md` at the time
+   this finding was written; `AGENTS.md` is the standard as of decision
+   #15). Every session re-derives conventions that are already written
+   down in prose the model isn't being pointed at.
 3. **No repo states a project status or discloses LLM use.** Now required
    by [documentation-standard.md](documentation-standard.md); nothing
    surveyed does it yet, conformIT included until this session's README
@@ -207,9 +219,12 @@ from one external application, not decisions the maintainer has made.
   `init` and for `templates/`, whose whole point is to be copied into a
   target repo; those don't have the "clone and discard" option auditing
   does, so this question isn't actually closed, just narrowed.
-- Is `CLAUDE.md` per-repo, or one shared file plus a thin per-repo overlay?
-  The Rules of Engagement are identical everywhere; only scopes, commands,
-  and stack differ.
+- ~~Is `CLAUDE.md` per-repo, or one shared file plus a thin per-repo
+  overlay?~~ **Resolved by decision #15**: `AGENTS.md` per repo, with
+  the Rules of Engagement distilled into it rather than repeated in
+  full; `templates/AGENTS.md`'s placeholder sections are exactly the
+  per-repo scopes/commands/stack overlay this question was asking
+  about.
 - Should the em-dash grep run as an actual hook, or stay a documented manual
   check? Leaning toward a hook, since the whole point of this project is
   that unenforced standards drift, and this is the standard that just

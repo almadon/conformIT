@@ -502,3 +502,72 @@ be, by this kind of tool.
 **What would justify revisiting:** if `conform.sh init` gets built, it
 should place this file directly rather than leaving it for a human to
 copy by hand; until then, copying it manually is the whole mechanism.
+
+## 15. AGENTS.md over CLAUDE.md, and Assisted-by over Co-Authored-By
+
+Prompted by the maintainer asking whether external standards exist for
+AI-assisted work, and then asking to adopt two of the findings.
+
+**Chosen, part one:** `AGENTS.md` is the required agent-instructions
+file (`documentation-standard.md`'s table), not `CLAUDE.md`. `CLAUDE.md`
+becomes a one-line `@AGENTS.md` import, Anthropic's own documented
+pattern, per `templates/AGENTS.md` and `templates/CLAUDE.md`.
+
+**Why:** [AGENTS.md](https://agents.md) is a real, converged, tool-
+agnostic standard: over 60,000 adopting projects, 30+ supporting agents,
+stewarded by the Linux Foundation's Agentic AI Foundation since December
+2025. Writing a Claude-specific file as this project's required standard
+would mean every other agent (Codex, Copilot, Cursor, Gemini CLI, Aider)
+reads nothing, which contradicts decision #9's whole point: one standard
+for whoever does the work, not a standard for one vendor's tool. Claude
+Code itself doesn't read `AGENTS.md` natively as of this writing
+([anthropics/claude-code#6235](https://github.com/anthropics/claude-code/issues/6235)),
+so a bare `AGENTS.md` alone would leave Claude Code sessions in this
+repo without it; the one-line `CLAUDE.md` import closes that gap without
+maintaining two copies of the same content.
+
+**What it cost:** every prior reference to `CLAUDE.md` as the required
+file, across `documentation-standard.md`, the audit checker, `STATE.md`,
+and `README.md`, needed updating in the same change; a partial rename
+would have left the standard internally inconsistent, exactly the
+failure mode decision #12's "credits.md never got its footnote" already
+demonstrated once. The audit gained one more check: a `CLAUDE.md` with
+real content and no sibling `AGENTS.md` is flagged, since that's the
+most likely way a Claude Code user misses this convention entirely
+(Claude Code works fine reading `CLAUDE.md` directly, so nothing forces
+the tool-agnostic file into existence on its own).
+
+**Chosen, part two:** AI-authored commits carry `Assisted-by:
+AGENT_NAME:MODEL_VERSION`, not `Co-Authored-By:`. Full format and
+reasoning in
+[commit-and-history.md](commit-and-history.md#ai-authorship).
+
+**Why:** the [Linux kernel's own documentation](https://docs.kernel.org/process/coding-assistants.html)
+specifies this format, and Fedora, Rocky Linux, OpenTelemetry, the
+Apache Software Foundation, LLVM, and QEMU have converged on the same or
+a near-identical trailer independently. `Co-Authored-By:` is GitHub's
+convention for a human collaborator; using it for a tool blurs a
+distinction that matters most exactly where it's blurred, which is
+provenance and DCO certification. Converging on the same trailer other
+projects use is also what makes `git log --grep '^Assisted-by:'`
+meaningful across projects, not just within one.
+
+**What it cost:** every commit in this project's own history before this
+decision used `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`.
+Not rewritten; rewriting history for a trailer format isn't worth the
+disruption, and decision #2's own argument against retroactive migration
+applies here too. Commits from this point forward carry both trailers in
+this specific repository, not by choice: the Claude Code harness this
+project has been built with requires a `Co-Authored-By:` trailer on
+every commit it makes, a constraint on the tool, not a project decision.
+`Assisted-by:` is added alongside it, and a project not built inside a
+harness with that requirement should use only `Assisted-by:`, per
+`commit-and-history.md`.
+
+**What would justify revisiting:** if `AGENTS.md` loses adoption to a
+successor the way `.cursorrules` and other tool-specific files have
+already been superseded by `AGENTS.md` itself; if a coding-agent harness
+starts requiring its own conflicting trailer the way this project's
+current one requires `Co-Authored-By:`, in which case the "both
+trailers" accommodation would need to generalize past a single special
+case.

@@ -249,7 +249,7 @@ conformit_audit_repo() {
 
   # --- required files, per docs/documentation-standard.md -----------------
   local f
-  for f in README.md LICENSE CLAUDE.md docs/STATE.md docs/decisions.md CHANGELOG.md; do
+  for f in README.md LICENSE AGENTS.md docs/STATE.md docs/decisions.md CHANGELOG.md; do
     if [ -f "$REPO/$f" ]; then
       _conformit_note PASS "\`$f\` present"
     else
@@ -376,6 +376,16 @@ conformit_audit_repo() {
     _conformit_note PASS "commit-msg hook present in repo (not confirmed installed)"
   else
     _conformit_note WARN "no commit-msg hook found in repo"
+  fi
+
+  # A CLAUDE.md with real content instead of an `@AGENTS.md` import is the
+  # most likely way this convention gets missed: Claude Code reads
+  # CLAUDE.md natively, so it's easy to write everything there and never
+  # create the tool-agnostic file other agents actually read. Only
+  # checked when AGENTS.md is missing; if both exist, assume it's set up
+  # correctly rather than parsing CLAUDE.md's content to be sure.
+  if [ -f "$REPO/CLAUDE.md" ] && [ ! -f "$REPO/AGENTS.md" ]; then
+    _conformit_note WARN "CLAUDE.md exists with no AGENTS.md; content may need to move, see documentation-standard.md"
   fi
 
   # --- recent commit subjects vs Conventional Commits -----------------------

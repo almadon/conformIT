@@ -23,9 +23,10 @@ Two halves, and both are required:
   re-litigated or quietly reversed by someone who assumed it was arbitrary.
 - **`templates/` + `scripts/`**: the machinery that applies them, so
   conformance is the default rather than an act of discipline. Git hooks,
-  an audit tool, and a README scaffold exist today. A `CLAUDE.md`, a
-  settings baseline, and `conform.sh init` are designed but not yet built;
-  see [STATE.md](docs/STATE.md) for what's real.
+  an audit tool, a README scaffold, and `AGENTS.md`/`CLAUDE.md` exist
+  today. A `.claude/settings.json` baseline and `conform.sh init` are
+  designed but not yet built; see [STATE.md](docs/STATE.md) for what's
+  real.
 
 Standards nobody enforces drift. Enforcement nobody understands gets
 disabled. That's why neither half ships alone.
@@ -77,7 +78,9 @@ this section used to promise, is still just a stub; see
 
 For a new project's `README.md`, copy
 [`templates/docs/README.md`](templates/docs/README.md) by hand for now;
-`init` will place it automatically once it exists (decision #14).
+`init` will place it automatically once it exists (decision #14). Same for [`templates/AGENTS.md`](templates/AGENTS.md) and
+[`templates/CLAUDE.md`](templates/CLAUDE.md) (decision #15). Copy both;
+`CLAUDE.md` is one line and doesn't need editing.
 
 ## Recurring audit
 
