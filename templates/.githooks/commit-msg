@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# conformIT — Conventional Commits check.
+# conformIT: Conventional Commits check.
 # See docs/commit-style.md. Bypass once with: git commit --no-verify
 #
 # Portable to bash 3.2 (macOS system bash): no mapfile, no associative arrays.
@@ -65,11 +65,18 @@ case "$DESC" in
   [A-Z]*) fail "description starts with a capital. Use imperative lower case." ;;
 esac
 
-# Past-tense and gerund subjects are the most common drift; catch the obvious ones.
+# Past tense, third-person present, and gerund subjects are the three shapes
+# non-imperative drift actually takes ("added", "adds", and "adding" are all
+# not "add"). The list was originally past-tense/gerund only and missed the
+# third-person forms entirely, so "fix: adds a flag" passed silently; found
+# by diffing against an adopter's independently-extended fork of this same
+# hook, which had already caught it. See decisions.md #11.
 FIRST_WORD="${DESC%% *}"
 case "$FIRST_WORD" in
-  added|fixed|updated|removed|changed|adding|fixing|updating|removing|changing)
-    fail "description is not imperative ('$FIRST_WORD'). Write 'add', not 'added'." ;;
+  added|adds|fixed|fixes|updated|updates|removed|removes|changed|changes| \
+  created|creates|refactored|refactors| \
+  adding|fixing|updating|removing|changing|creating|refactoring)
+    fail "description is not imperative ('$FIRST_WORD'). Write 'add', not 'added'/'adds'/'adding'." ;;
 esac
 
 # '!' marks a breaking change for tooling; the footer is for the person

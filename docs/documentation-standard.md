@@ -15,14 +15,26 @@ Anything a future reader would otherwise have to re-derive belongs in prose.
 | `CLAUDE.md` | Working agreement for AI agents in this repo | Every session re-derives the conventions |
 | `docs/STATE.md` | What is true right now, including what's broken | Status lives in someone's head |
 | `docs/decisions.md` | Numbered decisions with reasoning and cost | Settled questions get re-litigated |
-| `docs/architecture.md` | How the pieces fit and why each is where it is | Structure is only legible by reading all the code |
-| `docs/security.md` | The project's instance of the security posture | Trust boundaries are implicit |
-| `docs/credits.md` | Dependencies, licences, and what was rejected | Obligations are unknown at release |
+| `docs/architecture.md`* | How the pieces fit and why each is where it is | Structure is only legible by reading all the code |
+| `docs/security.md`* | The project's instance of the security posture | Trust boundaries are implicit |
+| `docs/credits.md`* | Dependencies, licences, and what was rejected | Obligations are unknown at release |
 | `CHANGELOG.md` | What changed and why, including reverts | History is only in git log |
 
 Projects with contributors add `CONTRIBUTING.md`. Projects with a long-range
 shape add `VISION.md`, distinct from `architecture.md` in that it covers what
 the project is and is not, rather than how it's built.
+
+\* Conditional on having something to say. A project with no running
+components, no trust boundaries to describe, and no adopted dependencies
+can skip these three rather than write a near-empty file for the sake of
+the table. Record the skip in `docs/decisions.md`, the way conformIT's own
+does at #10, so a reader can tell "not applicable" apart from "overlooked."
+
+`docs/security.md` is this project's own security posture and is distinct
+from a top-level `SECURITY.md`, which GitHub gives special handling
+("Report a vulnerability") and which covers how to report a vulnerability,
+not what the trust model is. A project with both should have each point at
+the other so nobody conflates them.
 
 `docs/README.md` is an index of the above. A directory listing is not
 navigation.

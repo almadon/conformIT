@@ -5,10 +5,26 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-08-25. Third session: conformIT was checked against a
-real project (flashDK, an external Apache-2.0 SDK) for the first time.
-Findings from that application are appended below, and the "nothing has been
-applied" line lower in this file is no longer accurate.
+**Last updated:** 2026-08-26. Fifth session: built the first real tool,
+`scripts/conform.sh audit`, plus a scheduled GitHub Actions workflow that
+runs it against every repo in `registry/targets.yaml` and posts a
+pass/fail table to the job summary. This closes flashDK finding #1 below
+("there is still no tool to run") and partially resolves the open
+question about whether conformIT installs into projects: for auditing,
+the answer is no, it's a reference that clones and checks a target from
+outside, per decision #12. Also closed finding #2 (`security.md`/
+`SECURITY.md`) and decision #10's own loose end (the required-file table
+was never actually marked conditional), both from the fourth session.
+
+**Immediately useful finding from testing the new tool against real
+repos:** `almadon/novak-integracije`, `almadon/novak-konzol`, and
+`almadon/consigliere` have none of the required doc set at all (no
+`LICENSE`, `CLAUDE.md`, `docs/STATE.md`, `docs/decisions.md`, or
+`CHANGELOG.md`), and two of the three fail the LLM-disclosure heuristic.
+`flashctrl/flashDK`, the one project that got a manual pass already,
+comes back nearly clean. The tool tracks reality; see the full run
+recorded in decision #12's "what it cost" section for the caveats before
+treating any single FAIL as certain.
 
 **Scope confirmed by the maintainer this session:** conformIT is meant to
 cover infrastructure, documentation, safety, security, privacy, design
@@ -49,20 +65,35 @@ categories already drafted. See "gaps against that scope" below.
 
 ## What is not built yet
 
-- **`scripts/conform.sh` does not exist.** Both `init` and `audit` are
-  described in the README as intent. The README says so. Don't let that
-  drift into implying they work.
-- **`templates/` is not populated.** The intended contents: a `CLAUDE.md`
-  distilled from the Rules of Engagement, `docs/` skeletons for each
-  required file (including a status/LLM-disclosure stub for `README.md`),
-  the `commit-msg` hook, a `.gitmessage` template, and a
+- **`scripts/conform.sh audit` exists and works.** `init` still doesn't;
+  running it prints a message pointing here instead of silently doing
+  nothing. Audit supports a local path, an `owner/repo` shorthand, and
+  `--all` against `registry/targets.yaml`; the checks live in
+  `scripts/lib/audit-checks.sh` so all three modes share one
+  implementation.
+- **`.github/workflows/audit.yml` runs it weekly** (Mondays, 13:00 UTC)
+  and on manual dispatch, against the six repos currently declared in
+  `registry/targets.yaml` (conformIT itself included, deliberately). Not
+  yet observed running for real on a schedule, only tested by running
+  the same script locally against the same repos; see decision #12.
+- **`templates/` is partially populated.** `.githooks/commit-msg`,
+  `.githooks/pre-commit` (the em-dash check), and `.gitmessage` exist and
+  are tested. Still missing: a `CLAUDE.md` distilled from the Rules of
+  Engagement, `docs/` skeletons for each required file (including a
+  status/LLM-disclosure stub for `README.md`), and a
   `.claude/settings.json` baseline.
+- **The pre-commit hook exists but isn't installed anywhere, including
+  here.** conformIT's own repo doesn't run it yet; per decision #10,
+  `CLAUDE.md` and `CHANGELOG.md` were prioritized as the open gaps first.
+  Its scope is `docs/` and `README.md` only, matching writing-style.md's
+  stated scope, which is why two pre-ban em dashes in `templates/` (a
+  comment and a `.gitmessage` line, both predating decision #7) survived
+  every grep run so far and were only caught by widening the check by
+  hand this session. Not evidence the scope is wrong, since template
+  comments aren't documentation, but worth knowing the hook wouldn't have
+  caught these on its own.
 - **No `CHANGELOG.md`** for conformIT itself, which its own documentation
   standard requires. Noted rather than silently excused.
-- **No pre-commit check for em dashes.** `writing-style.md` documents the
-  grep command but nothing runs it automatically yet. Should probably live
-  in the same hook as the commit-msg check, or a separate `pre-commit` hook,
-  once `templates/.githooks/` grows one.
 
 ## Findings from the survey worth acting on
 
@@ -99,25 +130,15 @@ doesn't do X" but "the standard doesn't say what to do when X." Recorded
 here rather than folded into decisions.md, since these are observations
 from one external application, not decisions the maintainer has made.
 
-1. **There is still no tool to run.** Checking flashDK meant reading all
-   eight standards documents and cross-checking a real repository against
-   each by hand, including running the em-dash grep manually, since nothing
-   runs it automatically. This is exactly the gap "what is not built yet"
-   already names, from the other side: the first real use of conformIT
-   confirms that gap costs real time, not just theoretical tidiness. Even a
-   minimal, report-only script checking for the required file set and
-   running the documented greps would have caught a meaningful fraction of
-   what turned up, mechanically, before a human or a model read a single
-   document.
-2. **`docs/security.md` and a repository's top-level `SECURITY.md` are easy
-   to conflate, and nothing here says they're different files.** GitHub
-   gives `SECURITY.md` special handling in its own UI (the "Report a
-   vulnerability" button), which is a different convention from this
-   standard's `docs/security.md` ("the project's instance of the security
-   posture"). A project following both conventions ends up with two
-   similarly named files covering different things. flashDK resolved it by
-   having each file point at the other; `documentation-standard.md` could
-   save the next project that confusion with one sentence.
+1. ~~There is still no tool to run.~~ **Fixed 2026-08-26**:
+   `scripts/conform.sh audit` and the scheduled workflow exist now. It's a
+   report-only script checking the required file set, the README
+   heuristics, the em-dash scan, and recent commit-message conformance,
+   which is a meaningful fraction of what a manual read caught, though not
+   all of it: rules 3-6 below are all judgment calls a script can't make.
+2. ~~`docs/security.md` and a repository's top-level `SECURITY.md` are easy
+   to conflate.`~~ **Fixed 2026-08-26**: `documentation-standard.md` now
+   has the disambiguating sentence directly under the required-file table.
 3. **Security-posture rule 8 ("pin versions") and mainstream library
    convention in at least one ecosystem pull in opposite directions, and
    the rule doesn't acknowledge the tension.** The usual advice for a
@@ -170,10 +191,13 @@ from one external application, not decisions the maintainer has made.
 
 ## Open questions
 
-- Does conformIT install into projects (a plugin, a submodule, a copied
-  scaffold), or is it purely a reference that `conform.sh` reads from? The
-  README implies a scaffold. This hasn't actually been decided, and it
-  determines whether standards updates propagate or have to be re-copied.
+- Does conformIT install into projects for the parts other than
+  auditing (a plugin, a submodule, a copied scaffold), or stay a pure
+  reference? Resolved for auditing specifically (decision #12: reference,
+  nothing installed, a target is cloned and thrown away). Still open for
+  `init` and for `templates/`, whose whole point is to be copied into a
+  target repo; those don't have the "clone and discard" option auditing
+  does, so this question isn't actually closed, just narrowed.
 - Is `CLAUDE.md` per-repo, or one shared file plus a thin per-repo overlay?
   The Rules of Engagement are identical everywhere; only scopes, commands,
   and stack differ.

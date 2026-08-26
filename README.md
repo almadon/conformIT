@@ -4,8 +4,9 @@ Uniform engineering standards for AI-assisted software work: the rules that
 should hold across every repo, regardless of language, stack, or whether a
 human or a model wrote the line.
 
-**Status: in testing.** Applied to zero real projects so far. See
-[STATE.md](docs/STATE.md).
+**Status: in testing.** Checked against six real repositories via the
+recurring audit below; not yet enforced anywhere through installed
+tooling. See [STATE.md](docs/STATE.md).
 
 **LLM use:** this project is built and maintained with substantial AI
 assistance (Claude Code). The standards were drafted by a model from a
@@ -21,8 +22,9 @@ Two halves, and both are required:
   re-litigated or quietly reversed by someone who assumed it was arbitrary.
 - **`templates/` + `scripts/`**: the machinery that applies them, so
   conformance is the default rather than an act of discipline. Git hooks
-  exist today. A `CLAUDE.md`, a settings baseline, and doc scaffolding are
-  designed but not yet built; see [STATE.md](docs/STATE.md) for what's real.
+  and an audit tool exist today. A `CLAUDE.md`, a settings baseline, doc
+  scaffolding, and `conform.sh init` are designed but not yet built; see
+  [STATE.md](docs/STATE.md) for what's real.
 
 Standards nobody enforces drift. Enforcement nobody understands gets
 disabled. That's why neither half ships alone.
@@ -48,15 +50,30 @@ disabled. That's why neither half ships alone.
 
 ## Adopting it
 
-Not yet implemented. See [STATE.md](docs/STATE.md). The intended shape:
-
 ```bash
-scripts/conform.sh init    # scaffold a new project
-scripts/conform.sh audit   # report where an existing project diverges
+scripts/conform.sh audit <path>          # a local checkout
+scripts/conform.sh audit <owner/repo>    # clones a public repo and checks it
+scripts/conform.sh audit --all           # every repo in registry/targets.yaml
+scripts/conform.sh init                  # not implemented yet, see STATE.md
 ```
 
-`audit` reports. It does not rewrite. Existing repos are not retroactively
-migrated; see decision #2.
+`audit` reports. It never rewrites the target, and existing repos are not
+retroactively migrated; see decision #2. `init`, the other half of what
+this section used to promise, is still just a stub; see
+[STATE.md](docs/STATE.md) for what's real.
+
+## Recurring audit
+
+A [scheduled workflow](.github/workflows/audit.yml) runs `conform.sh audit
+--all` weekly against the public repos declared in
+[`registry/targets.yaml`](registry/targets.yaml), and posts a readable
+pass/fail table to the run's job summary in the Actions tab. It's
+report-only: a target failing every check doesn't fail the job, and
+nothing is ever written back to a target or committed here. See decision
+[#12](docs/decisions.md) for the scope (public repos only, no auto-fix,
+no persisted report) and its caveats (the README-disclosure checks are
+regex heuristics, and the commit-style check penalizes history older than
+this standard).
 
 ## Provenance
 

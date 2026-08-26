@@ -232,3 +232,128 @@ document already marks as conditional; this makes explicit that
 dependency (a linter, a CI action, a package this repo requires rather
 than one it's documenting), `docs/credits.md` becomes real and this
 decision narrows to cover only `architecture.md` and `security.md`.
+
+## 11. The commit-msg hook's non-imperative check was missing two of three shapes
+
+Found by diffing an adopting project's independently-extended fork of this
+same hook against the template it started from (novak PR #29 and #30),
+rather than by anyone auditing the template directly.
+
+**What was wrong:** the template only matched past tense ("added") and
+gerunds ("adding"), and only for five verbs. Third-person present forms
+("adds," "fixes," "removes," "creates") passed silently, because they were
+never in the list at all. novak's own hook, forked from an earlier version
+of this template, already had the third-person forms; the audit in PR #29
+found the template lacked the capitalisation and gerund checks novak's
+hook had gained since, and in porting those back (PR #30) surfaced that
+the direction ran both ways: novak's fork was ahead on third-person forms
+before this project ever asked about them.
+
+**Chosen:** extended the word list to cover all three shapes, plus two
+verbs (`create`, `refactor`) that weren't in either version but are common
+enough to matter, since `refactor` is also a commit type and easy to type
+as the description's first word by habit.
+
+**Why a bug like this survived:** the hook was tested against a
+regression matrix at the time it was written (11 cases, later 14), and
+every case passed. None of the cases exercised third-person present tense,
+because the person writing the tests was also the person who wrote the
+word list, and both omissions were the same blind spot. An external
+fork that grew independently didn't share it.
+
+**What it cost:** nothing to fix. The finding itself is the interesting
+part: a hardcoded word list is the kind of check that looks complete when
+you write it and stays that way until an independent implementation shows
+you what it missed. Worth remembering the next time this hook's list
+looks finished.
+
+**What would justify revisiting:** if the word list keeps growing verb by
+verb, it may be worth switching to a general "does this look like a
+third-person-singular or gerund verb" pattern instead of an enumerated
+list, at the cost of more false positives on words that happen to end in
+"s" or "ing" without being verbs at all.
+
+## 12. A recurring, centralized audit, scoped to a declared list of public repos
+
+The maintainer asked for a recurring GitHub Actions audit of the projects
+adopting this standard, with a readable pass/fail report. This resolves
+part of the open question in STATE.md about whether conformIT installs
+into projects or stays a reference: for auditing specifically, the answer
+is reference. Nothing is installed into any target; conformIT clones each
+one fresh, checks it from outside, and throws the clone away.
+
+**Chosen:**
+
+- A declared list (`registry/targets.yaml`), not auto-discovery of
+  everything under an account. Auto-discovery would need to guess which
+  repos are actually meant to follow this standard and would silently
+  change scope every time a new repo appeared.
+- Public repos only. A private target needs a deploy key or a PAT with
+  read access, which this workflow doesn't have and doesn't ask for. Not
+  a technical limit, a deliberate one: adding cross-repo credentials to a
+  scheduled workflow is a real security-posture decision on its own
+  (rule 4, identity and scope), not a side effect of wanting a report.
+- Output goes to the GitHub Actions job summary only. No commit, no
+  issue. Chosen over both alternatives specifically because the
+  maintainer flagged wanting the report to exclude anything private or
+  secret; a job summary that's regenerated every run and never persisted
+  to git or to an issue thread is the smallest surface for something to
+  leak into by accident. The checks themselves only ever print filenames,
+  line numbers, and short labels, never file contents, for the same
+  reason: some of what's audited is a repository this project doesn't
+  own, and the report about it is more public than the repository itself
+  needs to be aware of.
+- The job always exits successfully, regardless of findings. This is a
+  report, not a gate, consistent with decision #2 (audit reports, never
+  rewrites, never blocks). A red status badge would invite treating a
+  finding as a build failure to fix under pressure rather than a fact to
+  read.
+- `scripts/conform.sh audit` does triple duty: a local path, an
+  `owner/repo` shorthand (clones it), or `--all` (reads the registry).
+  One command and one check implementation
+  (`scripts/lib/audit-checks.sh`) for all three, rather than a separate
+  CI-only script duplicating the same logic, which is the same
+  reuse-before-you-add argument as rules-of-engagement rule 7 applied to
+  this project's own tooling.
+
+**What it cost:**
+
+- The em-dash scan in `scripts/lib/audit-checks.sh` duplicates the
+  fence/inline-code/allow-marker exclusion logic already in
+  `templates/.githooks/pre-commit`, rather than sharing it. Deliberate:
+  the pre-commit hook is meant to be dropped into a repo as one
+  self-contained file, and the audit runs from conformIT's own checkout
+  against a clone it doesn't control, so neither side can assume the
+  other's files are present to source from. The two copies must be kept
+  in sync by hand, which is a real, ongoing cost, and was already
+  visible during testing: the check briefly leaked full CI temp-directory
+  paths into its own report until caught and fixed in the same session
+  (see the file-path handling in `_conformit_scan_em_dash`'s caller).
+- The README status and LLM-disclosure checks are regex heuristics, not
+  a real reading of the text. Run against the five real targets during
+  development, `almadon/novak-konzol` and `almadon/consigliere` both
+  failed the LLM-disclosure check although both are AI-assisted projects;
+  whether that's the standard correctly catching an undisclosed project
+  or the heuristic missing phrasing it should have caught wasn't
+  distinguished, and reading the actual READMEs is the only way to tell.
+  Treat a FAIL from these two checks as "go look," not as a
+  confirmed violation.
+- `actions/checkout@v4` in the workflow is a floating major-version tag,
+  which is exactly what security-posture rule 8 argues against. Marked
+  `VERIFY` in the workflow file rather than pinned to a commit SHA,
+  because this session had no way to confirm a current, correct SHA
+  without network access, and a wrong guessed SHA would be worse than an
+  honest floating tag with the gap flagged.
+- The commit-style check counts conformance over the last 50 commits,
+  which penalizes a repo for history that predates this standard
+  entirely. `flashctrl/flashDK` scored 14/40 in testing for exactly this
+  reason: it's a real, working project with its own prior convention,
+  not evidence it's failing to adopt anything. The report doesn't
+  distinguish "never adopted this" from "adopted it recently, older
+  history remains," and can't from the outside.
+
+**What would justify revisiting:** a private repo needing coverage (would
+need the deploy-key question answered directly, not defaulted around);
+the heuristic false-fail rate turning out high enough that the two
+disclosure checks do more harm than good as an automated signal, in which
+case they'd become documentation-only guidance rather than a checked item.

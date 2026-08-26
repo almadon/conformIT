@@ -1,0 +1,23 @@
+# conformIT audit targets.
+#
+# Read by scripts/conform.sh (audit --all) and .github/workflows/audit.yml,
+# which parse this as a flat bulleted list under `targets:` with grep and
+# sed, not a real YAML parser, since this list has no structure worth one.
+# Keep every entry on its own `  - owner/repo` line; changing the file's
+# shape means updating the parser in scripts/conform.sh too.
+#
+# Public repos only. Adding a private one needs a deploy key or PAT this
+# workflow doesn't have, which is a deliberate limitation, not an
+# oversight; see docs/decisions.md #12.
+#
+# conformIT audits itself here too, deliberately: it's the one target
+# whose exemptions (docs/decisions.md #10) this same audit script already
+# knows how to read correctly.
+
+targets:
+  - almadon/conformIT
+  - almadon/novak
+  - almadon/novak-integracije
+  - almadon/novak-konzol
+  - almadon/consigliere
+  - flashctrl/flashDK

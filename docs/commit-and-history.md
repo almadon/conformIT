@@ -17,8 +17,10 @@ This resolves a real conflict between existing repos. See
 ## The subject
 
 Lowercase type, optional scope in parentheses, colon, space, description.
-72 characters or fewer, imperative mood ("add," not "added"), no full
-stop.
+72 characters or fewer, imperative mood, lowercase description, no full
+stop. Non-imperative drift takes three shapes and the hook checks all of
+them: past tense ("added"), third-person present ("adds"), and gerund
+("adding"). Only "add" passes.
 
 | Type | For | Version effect |
 |---|---|---|
