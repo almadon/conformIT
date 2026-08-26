@@ -39,10 +39,27 @@ the other so nobody conflates them.
 `docs/README.md` is an index of the above. A directory listing is not
 navigation.
 
-## Status and LLM disclosure
+## What a README opens with
 
-Every `README.md` states two things near the top, before the rest of the
-content, not buried in a footer.
+Before any of the disclosures below, a README opens with what the project
+actually is, in a form a stranger can use without reading the code:
+
+- **Name and a one-line description.** What it's called and what it does,
+  in one sentence.
+- **Function.** A short paragraph on what it actually does, mechanically:
+  what it takes as input, what it produces, what it's for.
+- **Use case(s).** At least one concrete scenario where someone would
+  reach for this instead of something else. If none comes to mind
+  easily, that's worth noticing before writing the rest of the README.
+
+A template for this whole structure, including the disclosures below,
+lives at [`templates/docs/README.md`](../templates/docs/README.md); copy
+it rather than reconstructing the shape from this description each time.
+
+## Status, warranty, and LLM disclosure
+
+Every `README.md` states three things near the top, before the rest of
+the content, not buried in a footer.
 
 ### Project status
 
@@ -61,6 +78,23 @@ one anyway so nobody has to guess.
 
 Moving a project to "stable" is itself worth a line in `docs/decisions.md`:
 what made it stable, and what would knock it back to testing.
+
+### No warranty
+
+A short, plain disclaimer that the project comes with no warranty or
+guarantee of fitness for any purpose. This isn't legal advice and isn't a
+substitute for a real licence's own warranty language (MIT and most
+open-source licences already include one, in `LICENSE`); it's a plain-
+language line in the README itself, where a reader actually looks, rather
+than something that only exists in a licence file most people don't open:
+
+> This project comes with no warranty or guarantee of fitness for any
+> purpose. Use it at your own risk.
+
+Pairs naturally with the status line: a project explicitly "in testing"
+disclaiming warranty is a coherent, honest pair of statements; a project
+claiming "stable" while also disclaiming all warranty is a much stranger
+thing to read, and is itself a signal something's off.
 
 ### LLM use
 

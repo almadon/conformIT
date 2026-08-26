@@ -8,8 +8,14 @@
 #   scripts/conform.sh init                  not implemented yet, see docs/STATE.md
 #
 # `audit` reports. It never rewrites the target and never writes anything
-# back to conformIT itself. See docs/decisions.md #2 (no --fix, ever) and
-# #12 (why this exists and what it doesn't cover).
+# back to conformIT itself. See docs/decisions.md #2 (no --fix, ever),
+# #12 (why this exists and what it doesn't cover), and #13 (why a likely
+# secret is the one finding that makes this command exit non-zero: every
+# other finding is report-only).
+#
+# Exit codes: 0 = ran clean, no critical findings. 1 = usage error or a
+# target couldn't be reached at all. 2 = ran clean but at least one
+# target has a likely secret; see the CRITICAL banner in the output.
 #
 # Portable to bash 3.2 (macOS system bash).
 set -uo pipefail
@@ -62,12 +68,15 @@ cmd_audit_all() {
   echo "cloned fresh for this run. Nothing is written back to any target."
   echo
 
+  local crit_total_file="$workdir/crit_total"
+  echo 0 > "$crit_total_file"
+
   local repo clone_dir
   while IFS= read -r repo; do
     [ -z "$repo" ] && continue
     clone_dir="$workdir/$(printf '%s' "$repo" | tr '/' '_')"
     if ! git clone --quiet --depth 50 "https://github.com/${repo}.git" "$clone_dir" 2>/dev/null; then
-      echo "| $repo | ❌ | n/a | n/a | clone failed |" >> "$rows_file"
+      echo "| $repo | ❌ | n/a | n/a | clone failed | n/a |" >> "$rows_file"
       echo "### $repo"
       echo
       echo "- ❌ could not clone: repository missing, renamed, or not public"
@@ -75,13 +84,30 @@ cmd_audit_all() {
       continue
     fi
     conformit_audit_repo "$clone_dir" "$repo" "$rows_file"
+    if [ "$CONFORMIT_CRIT" -gt 0 ]; then
+      echo "$(($(cat "$crit_total_file") + CONFORMIT_CRIT))" > "$crit_total_file"
+    fi
   done <<CONFORMIT_TARGETS
 $targets
 CONFORMIT_TARGETS
 
-  echo "| Repo | Status | Pass | Warn | Fail |"
-  echo "|---|---|---|---|---|"
+  local crit_total
+  crit_total="$(cat "$crit_total_file")"
+  if [ "$crit_total" -gt 0 ]; then
+    echo "## 🚨 CRITICAL: possible secrets found in $crit_total place(s) across the targets below"
+    echo
+    echo "Rotate any genuine credential immediately and notify every"
+    echo "collaborator or org member with access. See the flagged repo's"
+    echo "own section below for specifics."
+    echo
+  fi
+
+  echo "| Repo | Status | Pass | Warn | Fail | Crit |"
+  echo "|---|---|---|---|---|---|"
   cat "$rows_file"
+
+  [ "$crit_total" -gt 0 ] && return 2
+  return 0
 }
 
 cmd_audit_one() {
@@ -116,9 +142,21 @@ cmd_audit_one() {
   fi
 
   conformit_audit_repo "$repo_path" "$label" "$rows_file"
-  echo "| Repo | Status | Pass | Warn | Fail |"
-  echo "|---|---|---|---|---|"
+
+  if [ "$CONFORMIT_CRIT" -gt 0 ]; then
+    echo "## 🚨 CRITICAL: possible secret(s) found"
+    echo
+    echo "Rotate any genuine credential immediately and notify every"
+    echo "collaborator or org member with access. See details above."
+    echo
+  fi
+
+  echo "| Repo | Status | Pass | Warn | Fail | Crit |"
+  echo "|---|---|---|---|---|---|"
   cat "$rows_file"
+
+  [ "$CONFORMIT_CRIT" -gt 0 ] && return 2
+  return 0
 }
 
 case "${1:-}" in

@@ -1,19 +1,22 @@
 name: conformIT audit
 
 # Recurring compliance check against the projects declared in
-# registry/targets.yaml. Report-only: this workflow never modifies
-# conformIT or any audited repo, and never writes anything back to either.
-# See docs/decisions.md #12 for why it's scoped to a declared list of
-# public repos, and docs/STATE.md for what the checks currently cover.
+# registry/targets.yaml. Report-only for most findings: this workflow
+# never modifies conformIT or any audited repo, and never writes anything
+# back to either. See docs/decisions.md #12 for why it's scoped to a
+# declared list of public repos, and #13 for the sensitive-content checks
+# below and their one deliberate exception to "report-only."
 #
 # Output goes to the job summary only, not a commit or an issue. The
 # checks print filenames, line numbers, and short labels; never full file
 # contents or anything from this runner's own environment, since the
 # summary is visible to anyone with read access to this repo.
 #
-# The job always exits green, even when a target fails every check: this
-# is a report, not a gate, matching decision #2 (audit never blocks). Read
-# the summary; don't rely on the Actions status badge to notice a finding.
+# Exception to "always green": a likely secret (CRIT) makes this job fail
+# outright, deliberately, so a scheduled-run failure notification (if the
+# org has one configured) actually fires for the one finding worth
+# interrupting someone for. Every other finding, including missing files
+# and PII/private-URL hits, stays report-only. See decisions.md #13.
 
 on:
   schedule:
@@ -28,13 +31,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out conformIT
-        # VERIFY: security-posture.md rule 8 asks for a version pinned to
-        # a commit SHA, not a floating major-version tag. Not done here:
-        # this session had no way to confirm a real, current SHA for this
-        # action without network access, and guessing one would be worse
-        # than the floating tag it would replace. Pin this properly the
-        # next time someone can verify it.
-        uses: actions/checkout@v4
+        # Pinned to the commit actions/checkout's v4 tag pointed to on
+        # 2026-08-26 (confirmed via `gh api repos/actions/checkout/git/refs/tags/v4`),
+        # per security-posture.md rule 8. Re-verify before bumping; don't
+        # hand-edit this SHA on a guess.
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install gitleaks
+        # Pinned to v8.30.1, linux_x64, sha256-verified against the
+        # checksums file gitleaks publishes with the release (confirmed
+        # locally before this file was written, and again here). MIT
+        # licensed; see docs/credits.md. Used for the secrets check in
+        # scripts/lib/audit-checks.sh; that check still works without
+        # this step, at reduced coverage, if this ever breaks.
+        run: |
+          set -euo pipefail
+          cd /tmp
+          curl -sSL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" \
+            | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
 
       - name: Run the audit against every declared target
         run: |

@@ -112,6 +112,35 @@ is an unreviewed change on every start, and an outage when the network is
 down. Pin it. `novak/docs/credits.md` records this as a known weakness in
 its own stack, an honest open item rather than a solved problem.
 
+## Rule 9. A public repo gets scanned for what shouldn't be in it
+
+Secrets and personal information don't wait for someone to notice them by
+eye. A public repository (or one about to become public) gets checked
+for at least three things before and after publication, not just once at
+the start:
+
+- **Credentials**: API keys, tokens, private key material. A committed
+  key is not "removed" by deleting it in a later commit; it's already
+  public, and stays public in history and in any fork. The only correct
+  response to finding one is to **rotate it immediately and tell everyone
+  with access to the same credential**, then remove it from the repo as a
+  separate, secondary cleanup. conformIT's own audit tool
+  (`scripts/conform.sh audit`) checks for this and says so in exactly
+  those terms; see [decisions.md](decisions.md) #13.
+- **Personal email addresses that aren't already public via git
+  authorship.** A commit author's own email is already exposed by the
+  nature of a public git repo; an email address that shows up in a
+  config file, a comment, or a support script is a different and
+  avoidable disclosure.
+- **Internal or private service URLs and non-routable addresses**
+  (private IP ranges, internal DNS suffixes). These tell an attacker
+  what your topology looks like even when nothing about them is a
+  "secret" in the credential sense.
+
+This is a scan for what's already public and shouldn't be, not a
+guarantee nothing was missed. A regex-based check has a real false-negative
+rate; treat a clean scan as "nothing obvious found," not as proof.
+
 ## What this does not cover
 
 Nothing here addresses a compromised developer machine, a malicious

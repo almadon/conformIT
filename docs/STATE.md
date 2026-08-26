@@ -5,11 +5,19 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-08-26. Fifth session: built the first real tool,
+**Last updated:** 2026-08-26. Sixth session, same day as the fifth: added
+sensitive-content scanning (secrets via gitleaks, personal emails, private
+URLs) with a CRIT severity tier that's the one exception to "audit never
+fails the job" (decision #13), and a copyable README scaffold plus a
+warranty-disclaimer requirement (decision #14). `docs/credits.md` now
+exists for real, since gitleaks is conformIT's first adopted dependency,
+narrowing decision #10 exactly the way it predicted.
+
+Fifth session (earlier the same day): built the first real tool,
 `scripts/conform.sh audit`, plus a scheduled GitHub Actions workflow that
 runs it against every repo in `registry/targets.yaml` and posts a
-pass/fail table to the job summary. This closes flashDK finding #1 below
-("there is still no tool to run") and partially resolves the open
+pass/fail table to the job summary. This closed flashDK finding #1 below
+("there is still no tool to run") and partially resolved the open
 question about whether conformIT installs into projects: for auditing,
 the answer is no, it's a reference that clones and checks a target from
 outside, per decision #12. Also closed finding #2 (`security.md`/
@@ -77,11 +85,12 @@ categories already drafted. See "gaps against that scope" below.
   yet observed running for real on a schedule, only tested by running
   the same script locally against the same repos; see decision #12.
 - **`templates/` is partially populated.** `.githooks/commit-msg`,
-  `.githooks/pre-commit` (the em-dash check), and `.gitmessage` exist and
-  are tested. Still missing: a `CLAUDE.md` distilled from the Rules of
-  Engagement, `docs/` skeletons for each required file (including a
-  status/LLM-disclosure stub for `README.md`), and a
-  `.claude/settings.json` baseline.
+  `.githooks/pre-commit` (the em-dash check), `.gitmessage`, and now
+  `docs/README.md` (the full name/description/status/warranty/LLM-use
+  scaffold, decision #14) exist and are tested or, for the README
+  scaffold, at least reviewed by eye. Still missing: a `CLAUDE.md`
+  distilled from the Rules of Engagement, skeletons for the other
+  required `docs/` files, and a `.claude/settings.json` baseline.
 - **The pre-commit hook exists but isn't installed anywhere, including
   here.** conformIT's own repo doesn't run it yet; per decision #10,
   `CLAUDE.md` and `CHANGELOG.md` were prioritized as the open gaps first.

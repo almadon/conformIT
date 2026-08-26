@@ -338,12 +338,15 @@ one fresh, checks it from outside, and throws the clone away.
   distinguished, and reading the actual READMEs is the only way to tell.
   Treat a FAIL from these two checks as "go look," not as a
   confirmed violation.
-- `actions/checkout@v4` in the workflow is a floating major-version tag,
-  which is exactly what security-posture rule 8 argues against. Marked
-  `VERIFY` in the workflow file rather than pinned to a commit SHA,
-  because this session had no way to confirm a current, correct SHA
-  without network access, and a wrong guessed SHA would be worse than an
-  honest floating tag with the gap flagged.
+- ~~`actions/checkout@v4` in the workflow is a floating major-version
+  tag, marked `VERIFY` because this session had no way to confirm a
+  current, correct SHA without network access.~~ **Resolved the same
+  day, in the session that added decision #13**: that claim was wrong,
+  not just cautious. This environment does have network access; the
+  real commit was confirmed with `gh api repos/actions/checkout/git/refs/tags/v4`
+  and pinned. Kept here rather than deleted, per
+  [rules-of-engagement.md](rules-of-engagement.md) rule 4, since a wrong
+  assumption about tool access is worth not repeating on the next one.
 - The commit-style check counts conformance over the last 50 commits,
   which penalizes a repo for history that predates this standard
   entirely. `flashctrl/flashDK` scored 14/40 in testing for exactly this
@@ -357,3 +360,145 @@ need the deploy-key question answered directly, not defaulted around);
 the heuristic false-fail rate turning out high enough that the two
 disclosure checks do more harm than good as an automated signal, in which
 case they'd become documentation-only guidance rather than a checked item.
+
+## 13. Sensitive-content scanning, with one deliberate exception to report-only
+
+The maintainer asked for the audit to flag leaked secrets, personal email
+addresses (excluding git-author ones), and private-service URLs, and to
+warn collaborators/org members to rotate anything found.
+
+**Chosen:**
+
+- **Secrets**: [gitleaks](https://github.com/gitleaks/gitleaks) (MIT) when
+  it's on `PATH`, since a maintained rule set beats hand-rolled regex for
+  something this consequential; a heuristic fallback (well-known key
+  formats only: AWS access keys, PEM private-key headers, GitHub/Slack/
+  Google/Stripe token prefixes) when it isn't, reported as reduced
+  coverage rather than presented as equivalent. CI installs a pinned,
+  checksum-verified copy; see `docs/credits.md`, created by this decision.
+- **Emails**: every tracked file scanned for email-shaped strings; an
+  address already in this repo's own git author/committer history is
+  exempted (already public by the nature of a public git repo, per the
+  maintainer's own framing), as are `noreply@` addresses and RFC 2606
+  example domains.
+- **Private URLs**: RFC 1918 ranges and common internal-DNS suffixes
+  (`.internal`, `.corp`, `.lan`, `.ts.net`), excluding loopback addresses
+  and the RFC 5737 documentation ranges, both of which are expected in
+  ordinary docs and not a leak.
+- **A new severity tier, CRIT**, used only for secrets. PASS/WARN/FAIL
+  from decision #12 all stay report-only; a CRIT finding makes
+  `scripts/conform.sh audit` exit 2, and makes the scheduled workflow
+  job itself fail, breaking the "always green" rule #12 established.
+  Deliberate: a red status badge on a scheduled run is one of the only
+  mechanisms this design has for demanding attention beyond the summary
+  text, and a live credential is exactly the class of finding worth
+  interrupting someone for. Emails and private URLs stay at FAIL, not
+  CRIT: real disclosure risks, but not ones with an active "rotate now"
+  response the way a credential has.
+- The rotate-and-notify instruction is in the report text itself, not
+  just in this document: any CRIT finding prints "rotate it immediately
+  and notify every collaborator or org member with access," inline,
+  since that's the whole point of flagging it at all.
+- Scans the whole tracked tree (`git ls-files`), not just `docs/` and
+  `README.md` the way the em-dash check does. A leaked key is at least as
+  likely in source or config as in prose.
+
+**What it cost:**
+
+- Only the current working tree is scanned, not git history. A secret
+  removed from HEAD in a later commit but still present in an earlier
+  one is a real, separate risk this doesn't catch, and can't from a
+  shallow `--depth 50` clone even if it tried. Worth stating plainly
+  rather than implying broader coverage than exists: if HEAD is clean,
+  that is not the same claim as "this repo has never leaked anything."
+- `docs/decisions.md` #10 exempted `docs/credits.md` for this repo on the
+  premise that conformIT adopts no real dependencies. gitleaks is now
+  one, which is exactly the condition #10 named as ending the exemption.
+  `docs/credits.md` now exists, narrowing #10 to `docs/architecture.md`
+  and `docs/security.md` only, precisely as #10 predicted.
+- The gitleaks install step in the workflow is a second pinned external
+  artifact (the first being `actions/checkout`), each a maintenance
+  surface: both need re-verification on any future version bump, by
+  someone who can actually download and checksum the new release, not by
+  editing the pinned values on trust.
+- Local runs of `scripts/conform.sh audit` never install anything onto
+  the operator's own machine, including gitleaks: silently downloading
+  and running a new binary on a user's Mac as a side effect of an audit
+  command crosses a line CI installing it into an ephemeral, throwaway
+  runner does not. This means local audits without gitleaks pre-installed
+  get the weaker heuristic path, asymmetric with what CI sees for the
+  same repo.
+- All three checks are heuristic to some degree, email and URL detection
+  entirely so. A regex match is not a semantic read; treat a FAIL as
+  "go look," and a clean scan as "nothing obvious found," never as a
+  compliance certificate. Stated directly in security-posture.md rule 9,
+  which this decision also added.
+- **Confirmed, not hypothetical**: running this against
+  `flashctrl/flashDK` flagged `10.0.10.21` in an example file's doc
+  comment as a private address. Checked the actual source: it's a
+  placeholder LAN IP in a usage example telling a user to point the demo
+  at their own device, not a disclosed real address. The private-URL
+  check has no way to tell "example IP a reader is meant to replace"
+  apart from "an address that describes real infrastructure," and this
+  is exactly the false-positive shape that gap produces. Left as a FAIL
+  rather than special-cased, since narrowing the pattern to dodge this
+  one case risks missing a real one shaped the same way; noted here so a
+  human reads the hit rather than trusting the label.
+- **A related, narrower false positive was fixed, not just documented**:
+  this same check flagged its own bullet point above, since
+  `docs/decisions.md` quotes `10.0.10.21` inside a discussion of the
+  finding. The email, private-URL, and secret-heuristic scanners never
+  had the fenced-code/inline-code/allow-marker exclusions
+  `_conformit_scan_em_dash` already had, so any markdown file legitimately
+  illustrating a pattern always tripped its own check. Fixed by adding
+  `_conformit_prose_or_raw`, the same exclusion logic applied to a shared
+  helper the three scanners now pipe through, for `.md` files only. This
+  does not, and isn't meant to, help the flashDK case above: that hit is
+  in a `.rs` doc comment, and there's no "this is just an example"
+  convention in source code the way there is in prose for this check to
+  key off. Found and fixed in the same session as the rest of this
+  decision, before anything was committed, by running the tool against
+  its own output rather than by inspection, the same way the two bugs
+  during initial testing (the trap and the leaked temp path, both
+  documented in the commit history around decision #12) were found.
+
+**What would justify revisiting:** a real false-positive or false-negative
+rate observed from actual use, once the workflow has run enough times to
+have one, and the flashDK example above is already one data point toward
+that; a private repo needing this coverage, which would need the
+gitleaks-install-locally question answered on purpose rather than
+avoided; git-history scanning, if working-tree-only coverage turns out to
+miss findings people actually cared about.
+
+## 14. A copyable README scaffold, not just a described structure
+
+The maintainer asked for standardized scaffolding for a repo's README
+content and style: name, description, function, use case(s), development
+status with a no-warranty disclaimer, LLM disclosure.
+
+**Chosen:** [`templates/docs/README.md`](../templates/docs/README.md), a
+fill-in-the-blank file with bracketed placeholders and inline instructions,
+rather than only describing the structure in prose. `documentation-
+standard.md` gained a new "What a README opens with" section (name,
+one-line description, function, use cases) ahead of the existing
+disclosure section, which itself gained a warranty-disclaimer requirement
+alongside status and LLM use. The audit gained one more heuristic check:
+a use-case section heading, at WARN rather than FAIL, since detecting a
+genuinely good one-line description mechanically isn't reliable enough to
+fail a repo over.
+
+**Why a template file, not just prose:** [design-principles.md](design-principles.md)
+rule 4 argues for keeping the interesting decision in one obvious, copyable
+place rather than a description someone reconstructs each time. A prose
+description of a README's shape is exactly the kind of thing that drifts
+in the retelling; a file with placeholders doesn't.
+
+**What it cost:** the name/description/function/use-case requirements
+aren't checked as rigorously as status/warranty/LLM-use, since "is this a
+good description" isn't something a regex can judge. Presence of a use-
+case heading is checked; the quality of what's under it isn't and can't
+be, by this kind of tool.
+
+**What would justify revisiting:** if `conform.sh init` gets built, it
+should place this file directly rather than leaving it for a human to
+copy by hand; until then, copying it manually is the whole mechanism.
