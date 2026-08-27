@@ -571,3 +571,84 @@ starts requiring its own conflicting trailer the way this project's
 current one requires `Co-Authored-By:`, in which case the "both
 trailers" accommodation would need to generalize past a single special
 case.
+
+## 16. A private reporting repo, split by audience, not just relocated
+
+Prompted by the maintainer asking whether reports should go to a private
+"meta" repo instead of conformIT's own public job summary.
+
+**Chosen:** `almadon/conformIT-reporting`, private, gets the full
+per-finding detail (one file per target, overwritten each run so its own
+git history is the trend record). conformIT's own public job summary
+keeps only the summary table: pass/warn/fail/crit counts, no per-finding
+samples. `scripts/conform.sh audit --all` gained a `--detail-dir <dir>`
+flag to produce this split; without it, behaviour is unchanged (detail
+and summary both to stdout, the useful shape for a human running this
+locally).
+
+**Why a split, not just a relocation:** moving the exact same combined
+report to a private repo would fix exposure for repos in the registry,
+but conformIT's own public job summary would stay a place a sample could
+leak from, for any future check that isn't as careful as the current
+ones. Splitting by audience closes that structurally rather than relying
+on every check remembering to redact.
+
+**Found while building this, fixed in the same change:** the email
+check was the one place that hadn't learned this lesson yet. It printed
+the actual discovered address as its "sample," unlike the secrets check
+(file:line:rule, never the matched value) and the private-URL check
+(file:line only). Fixed to match: redacted to file:line, regardless of
+which report it ends up in. This was a live gap in the *public* job
+summary this whole time, not a hypothetical one the private repo
+happened to also fix.
+
+**The credential:** a fine-grained GitHub PAT, scoped to
+`almadon/conformIT-reporting` only, `contents: write`, nothing else,
+stored as `CONFORMIT_REPORTING_TOKEN` in conformIT's repo secrets. The
+maintainer is adding this themselves rather than it being minted by an
+agent session; the publish step checks for it (via a job-level env var,
+since [GitHub's own docs](https://docs.github.com/actions/security-guides/using-secrets-in-github-actions)
+confirm secrets can't be referenced directly in a step's `if:`, caught
+by checking the docs rather than assumed) and is skipped, not failed,
+until it exists.
+
+**What it cost:** a second credentialed surface (the first being the
+gitleaks download in decision #13), reviewed against
+[security-posture.md](security-posture.md) rule 2: one credential, this
+integration only, write access to nothing but this one repo. The
+reporting repo itself has none of conformIT's own required-file set
+(`AGENTS.md`, `docs/decisions.md`, and so on): it's entirely machine-
+written output with no human-authored content to speak to, the same
+"data, not documentation" exemption `documentation-standard.md` already
+gives `prompts/`/`registry/`-shaped content, applied to a whole repo
+instead of a directory within one. Its own README says so, so a visitor
+doesn't wonder why it doesn't follow conformIT's own rules.
+
+**What I did not verify:** the actual cross-repo commit-and-push, since
+the credential doesn't exist yet at the time this was written. Verified
+instead: the `--detail-dir` split produces exactly the intended
+public/private content shapes, tested against all six live registry
+targets; the redacted email check, tested against a synthetic fixture; a
+generic `if: env.X == 'true'` skip pattern against GitHub's documented
+guidance, not against a real run. The reporting repo's own initial
+commit and push, done directly rather than through the workflow, did
+succeed and is signed.
+
+**Found by running conformIT's own audit against its own working tree
+right after writing the new workflow step, fixed in the same change**:
+the email check flagged `actions@users.noreply.github.com`, the bot
+identity this same workflow step sets for its own commits, since the
+existing `noreply@*` exclusion only matched a literal prefix and GitHub's
+own noreply convention puts the marker in the domain
+(`*@users.noreply.github.com`), not the local part. Fixed by adding
+`*@*.noreply.github.com` to the exclusion list. Worth noting because it's
+the second time in one feature that a check flagged conformIT's own
+output back at itself (the first was decisions.md quoting its own
+example IP, in decision #13). Dogfooding immediately keeps finding
+these, which is the argument for continuing to do it rather than
+trusting a check because it looks reasonable on paper.
+
+**What would justify revisiting:** if `--detail-dir`'s output ever needs
+to differ from the plain stdout shape beyond "same content, different
+destination," at which point a single shared code path stops being the
+right design.

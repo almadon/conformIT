@@ -203,6 +203,7 @@ _conformit_scan_emails() {
           lower="$(printf '%s' "$email" | tr '[:upper:]' '[:lower:]')"
           case "$lower" in
             noreply@*|no-reply@*) continue ;;
+            *@*.noreply.github.com) continue ;;
             *@example.com|*@example.org|*@example.net|*@test.com|*@domain.com|*@yourdomain.com) continue ;;
           esac
           if ! printf '%s\n' "$allowed" | grep -qxF "$lower"; then
@@ -353,7 +354,11 @@ conformit_audit_repo() {
   else
     local count sample
     count=$(printf '%s\n' "$email_hits" | grep -c .)
-    sample=$(printf '%s\n' "$email_hits" | head -3 | paste -sd '; ' -)
+    # Redact the address itself from the report; file:line is enough to
+    # find it, and the private-URL and secret checks already report the
+    # same way. The address only ever appears in this function's own
+    # output, used for the exclusion check, never in what gets printed.
+    sample=$(printf '%s\n' "$email_hits" | cut -d: -f1,2 | head -3 | paste -sd '; ' -)
     _conformit_note FAIL "$count email address(es) not in this repo's git history, e.g. $sample"
   fi
 

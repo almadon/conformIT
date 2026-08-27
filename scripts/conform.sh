@@ -4,8 +4,17 @@
 # Usage:
 #   scripts/conform.sh audit <path>          audit a local checkout
 #   scripts/conform.sh audit <owner/repo>    clone (public, read-only) and audit
-#   scripts/conform.sh audit --all           audit every repo in registry/targets.yaml
+#   scripts/conform.sh audit --all [--detail-dir <dir>]
+#                                             audit every repo in registry/targets.yaml
 #   scripts/conform.sh init                  not implemented yet, see docs/STATE.md
+#
+# `--detail-dir <dir>`: write each target's full per-finding detail
+# (including samples: file:line, not the leaked value itself) to
+# <dir>/<owner>-<repo>.md instead of stdout. Without it, stdout carries
+# both the detail and the summary table, fine for a human running this
+# locally. With it, stdout carries only the summary table (counts, no
+# samples), meant for a destination with wider visibility than the
+# detail should have. See docs/decisions.md #16.
 #
 # `audit` reports. It never rewrites the target and never writes anything
 # back to conformIT itself. See docs/decisions.md #2 (no --fix, ever),
@@ -31,11 +40,15 @@ usage() {
 }
 
 cmd_audit_all() {
+  local detail_dir="${1:-}"
   local targets_file="$ROOT/registry/targets.yaml"
   local workdir rows_file
   workdir="$(mktemp -d)"
   rows_file="$workdir/rows.md"
   : > "$rows_file"
+  if [ -n "$detail_dir" ]; then
+    mkdir -p "$detail_dir"
+  fi
   # Deliberately double-quoted so $workdir expands now, capturing the
   # actual path as a literal string in the trap command. Single-quoting
   # it (shellcheck's usual advice, SC2064) defers the lookup until the
@@ -66,24 +79,44 @@ cmd_audit_all() {
   echo
   echo "Read-only. Public repos declared in \`registry/targets.yaml\`,"
   echo "cloned fresh for this run. Nothing is written back to any target."
+  if [ -n "$detail_dir" ]; then
+    echo
+    echo "Per-finding detail (file:line samples) is written to"
+    echo "\`$detail_dir\`, not shown here. This summary carries counts only."
+  fi
   echo
 
   local crit_total_file="$workdir/crit_total"
   echo 0 > "$crit_total_file"
 
-  local repo clone_dir
+  local repo clone_dir slug detail_target
   while IFS= read -r repo; do
     [ -z "$repo" ] && continue
     clone_dir="$workdir/$(printf '%s' "$repo" | tr '/' '_')"
     if ! git clone --quiet --depth 50 "https://github.com/${repo}.git" "$clone_dir" 2>/dev/null; then
       echo "| $repo | ❌ | n/a | n/a | clone failed | n/a |" >> "$rows_file"
-      echo "### $repo"
-      echo
-      echo "- ❌ could not clone: repository missing, renamed, or not public"
-      echo
+      if [ -n "$detail_dir" ]; then
+        slug="$(printf '%s' "$repo" | tr '/' '-')"
+        {
+          echo "### $repo"
+          echo
+          echo "- ❌ could not clone: repository missing, renamed, or not public"
+        } > "$detail_dir/$slug.md"
+      else
+        echo "### $repo"
+        echo
+        echo "- ❌ could not clone: repository missing, renamed, or not public"
+        echo
+      fi
       continue
     fi
-    conformit_audit_repo "$clone_dir" "$repo" "$rows_file"
+    if [ -n "$detail_dir" ]; then
+      slug="$(printf '%s' "$repo" | tr '/' '-')"
+      detail_target="$detail_dir/$slug.md"
+      conformit_audit_repo "$clone_dir" "$repo" "$rows_file" > "$detail_target"
+    else
+      conformit_audit_repo "$clone_dir" "$repo" "$rows_file"
+    fi
     if [ "$CONFORMIT_CRIT" -gt 0 ]; then
       echo "$(($(cat "$crit_total_file") + CONFORMIT_CRIT))" > "$crit_total_file"
     fi
@@ -162,7 +195,17 @@ cmd_audit_one() {
 case "${1:-}" in
   audit)
     case "${2:-}" in
-      --all) cmd_audit_all ;;
+      --all)
+        if [ "${3:-}" = "--detail-dir" ]; then
+          if [ -z "${4:-}" ]; then
+            echo "conform.sh: --detail-dir needs a path" >&2
+            exit 1
+          fi
+          cmd_audit_all "$4"
+        else
+          cmd_audit_all
+        fi
+        ;;
       "")
         echo "conform.sh: audit needs a path, an owner/repo, or --all" >&2
         exit 1

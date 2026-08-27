@@ -86,14 +86,20 @@ For a new project's `README.md`, copy
 
 A [scheduled workflow](.github/workflows/audit.yml) runs `conform.sh audit
 --all` weekly against the public repos declared in
-[`registry/targets.yaml`](registry/targets.yaml), and posts a readable
-pass/fail table to the run's job summary in the Actions tab. It's
-report-only for most findings: a target failing every compliance check
-doesn't fail the job, and nothing is ever written back to a target or
-committed here. See decision [#12](docs/decisions.md) for the scope
-(public repos only, no auto-fix, no persisted report) and its caveats
-(the README-disclosure checks are regex heuristics, and the commit-style
-check penalizes history older than this standard).
+[`registry/targets.yaml`](registry/targets.yaml). It's report-only for
+most findings: a target failing every compliance check doesn't fail the
+job, and nothing is ever written back to a target. See decision
+[#12](docs/decisions.md) for the scope (public repos only, no auto-fix)
+and its caveats (the README-disclosure checks are regex heuristics, and
+the commit-style check penalizes history older than this standard).
+
+Output is split by audience, not just posted in one place. The job
+summary in this repo's Actions tab (public, since this repo is public)
+carries pass/warn/fail/crit counts only. The full per-finding detail,
+including file:line samples for anything the sensitive-content checks
+below flag, goes to `almadon/conformIT-reporting` (private), one file per
+target, overwritten each run so its git history is the trend record. See
+decision [#16](docs/decisions.md).
 
 **One exception**: the audit also scans for likely secrets (via
 [gitleaks](https://github.com/gitleaks/gitleaks), pinned and

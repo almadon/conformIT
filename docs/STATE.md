@@ -5,7 +5,23 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-08-26. Seventh session, same day: surveyed
+**Last updated:** 2026-08-27. Eighth session: the maintainer asked
+whether reports should go to a private "meta" repo instead of
+conformIT's own public job summary. Built `almadon/conformIT-reporting`
+(private) plus a `--detail-dir` split in `scripts/conform.sh audit --all`
+so the public summary carries counts only and the private repo carries
+full per-finding detail (decision #16). Found and fixed a real gap while
+building it: the email check had been printing the actual discovered
+address into the public summary this whole time, unlike the secrets and
+private-URL checks, which already redacted to `file:line`. **Not yet
+live end to end**: the reporting repo exists and its initial commit is
+pushed, but the workflow's publish step needs a
+`CONFORMIT_REPORTING_TOKEN` secret (fine-grained PAT, scoped to that repo
+only, `contents: write`) that the maintainer is adding themselves. Until
+it exists, that step is skipped, not failed, and the workflow behaves
+exactly as before.
+
+Seventh session (previous day): surveyed
 external standards for AI-assisted work and adopted two (decision #15).
 `AGENTS.md` replaces `CLAUDE.md` as the required agent-instructions file
 (`CLAUDE.md` is now a one-line `@AGENTS.md` import, Anthropic's own
@@ -94,6 +110,12 @@ categories already drafted. See "gaps against that scope" below.
   `registry/targets.yaml` (conformIT itself included, deliberately). Not
   yet observed running for real on a schedule, only tested by running
   the same script locally against the same repos; see decision #12.
+- **`almadon/conformIT-reporting` (private) exists**, seeded with an
+  initial commit, but the workflow's publish step to it hasn't run for
+  real: it needs a `CONFORMIT_REPORTING_TOKEN` secret in this repo,
+  fine-grained PAT, scoped to that repo only, `contents: write`, and the
+  maintainer hasn't added it yet. Until it does, that step is skipped
+  and everything else behaves as before; see decision #16.
 - **`templates/` is partially populated.** `.githooks/commit-msg`,
   `.githooks/pre-commit` (the em-dash check), `.gitmessage`,
   `docs/README.md` (decision #14), and now `AGENTS.md` plus a `CLAUDE.md`
