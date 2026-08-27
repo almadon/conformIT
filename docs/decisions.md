@@ -651,7 +651,11 @@ plain, input-less checkout: the only behavioural change (v7 blocking
 fork-PR checkout for `pull_request_target`/`workflow_run`) doesn't apply
 to a `schedule`/`workflow_dispatch`-triggered job. Two majors in one
 jump rather than stepping through v5 and v6 individually, since nothing
-in between was itself worth pinning to on its own.
+in between was itself worth pinning to on its own. Triggered a real run
+immediately after to check the annotation actually disappeared rather
+than trusting the version bump alone: it did, `annotations_count: 0` on
+the resulting check run, checked directly against the API rather than
+just reading the log for the absence of a warning.
 
 **Found by running conformIT's own audit against its own working tree
 right after writing the new workflow step, fixed in the same change**:
