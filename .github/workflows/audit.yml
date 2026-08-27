@@ -1,31 +1,19 @@
 name: conformIT audit
 
-# Recurring compliance check against the projects declared in
-# registry/targets.yaml. Report-only for most findings: this workflow
-# never modifies conformIT or any audited repo. See docs/decisions.md
-# #12 for why it's scoped to a declared list of public repos, #13 for
-# the sensitive-content checks and their one deliberate exception to
-# "report-only," and #16 for the split below and why it exists.
+# conformIT's own use of its own reusable workflow
+# (reusable-audit.yml), auditing conformIT's own registry/targets.yaml
+# against conformIT's own private reporting repo. This file is
+# deliberately thin: everything that isn't almadon-specific lives in
+# reusable-audit.yml instead, so any other org can call the same logic
+# with their own targets and their own reporting repo. See
+# docs/decisions.md #17.
 #
-# Two destinations, deliberately different in what they carry:
-#
-# - The job summary (public: this repo is public) gets counts only, no
-#   per-finding detail. It always posts, even if a later step fails.
-# - almadon/conformIT-reporting (private) gets the full per-finding
-#   detail, one file per target, overwritten each run so its git history
-#   is the trend record. This step is skipped, not failed, until the
-#   CONFORMIT_REPORTING_TOKEN secret exists; see decisions.md #16 for
-#   what that token needs to be scoped to.
-#
-# Neither step's output includes full file contents or anything from
-# this runner's own environment: the checks print filenames, line
-# numbers, and short labels only. See docs/security-posture.md rule 9.
-#
-# Exception to "always green": a likely secret (CRIT) makes this job fail
-# outright, deliberately, so a scheduled-run failure notification (if the
-# org has one configured) actually fires for the one finding worth
-# interrupting someone for. Every other finding, including missing files
-# and PII/private-URL hits, stays report-only. See decisions.md #13.
+# Called via a same-repo relative path, not a pinned tag: a same-repo
+# call always runs the exact commit it's part of, so there's no
+# separate "which version" question to pin against the way there is for
+# an external caller. Security-posture.md rule 8's pinning argument is
+# about a *drifting* dependency; a relative same-repo call can't drift
+# from itself.
 
 on:
   schedule:
@@ -37,93 +25,8 @@ permissions:
 
 jobs:
   audit:
-    runs-on: ubuntu-latest
-    env:
-      # Secrets can't be referenced directly in a step's `if:` (confirmed
-      # against GitHub's own docs, not assumed: an earlier version of
-      # this file tried `secrets.X != ''` in `if:` directly, which their
-      # docs explicitly say doesn't work). This is the documented
-      # workaround: assign it to a job-level env var, check that instead.
-      HAVE_REPORTING_TOKEN: ${{ secrets.CONFORMIT_REPORTING_TOKEN != '' }}
-    steps:
-      - name: Check out conformIT
-        # Pinned to the commit actions/checkout's v7 tag (v7.0.1, latest
-        # release) pointed to on 2026-08-27, confirmed via
-        # `gh api repos/actions/checkout/git/refs/tags/v7`. Bumped from
-        # the v4-era pin after a real run's own annotations flagged that
-        # SHA as targeting the deprecated Node 20 runtime; confirmed
-        # this one's `action.yml` declares `using: node24` before
-        # pinning to it, not assumed from the version number alone. Per
-        # security-posture.md rule 8. Re-verify before bumping again;
-        # don't hand-edit this SHA on a guess.
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Install gitleaks
-        # Pinned to v8.30.1, linux_x64, sha256-verified against the
-        # checksums file gitleaks publishes with the release (confirmed
-        # locally before this file was written, and again here). MIT
-        # licensed; see docs/credits.md. Used for the secrets check in
-        # scripts/lib/audit-checks.sh; that check still works without
-        # this step, at reduced coverage, if this ever breaks.
-        run: |
-          set -euo pipefail
-          cd /tmp
-          curl -sSL -o gitleaks.tar.gz \
-            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
-          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" \
-            | sha256sum -c -
-          tar -xzf gitleaks.tar.gz gitleaks
-          chmod +x gitleaks
-          sudo mv gitleaks /usr/local/bin/gitleaks
-          gitleaks version
-
-      - name: Run the audit against every declared target
-        run: |
-          set -euo pipefail
-          bash scripts/conform.sh audit --all --detail-dir /tmp/conformit-detail \
-            >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish full detail to the private reporting repo
-        # Skipped, not failed, until this secret exists: a fine-grained
-        # PAT scoped to almadon/conformIT-reporting only, contents:write,
-        # nothing else. See docs/decisions.md #16 for the exact scope
-        # this needs and why it's a separate credential rather than
-        # reused from anything else.
-        if: ${{ always() && env.HAVE_REPORTING_TOKEN == 'true' }}
-        run: |
-          set -euo pipefail
-          git clone --quiet \
-            "https://x-access-token:${CONFORMIT_REPORTING_TOKEN}@github.com/almadon/conformIT-reporting.git" \
-            /tmp/reporting-repo
-          mkdir -p /tmp/reporting-repo/reports
-          rm -f /tmp/reporting-repo/reports/*.md
-          cp /tmp/conformit-detail/*.md /tmp/reporting-repo/reports/ 2>/dev/null || true
-
-          {
-            echo "# Latest reports"
-            echo
-            echo "Regenerated every run; this listing and every file under"
-            echo "\`reports/\` are overwritten in place. Their git history"
-            echo "is the trend record. Generated by"
-            echo "[conformIT](https://github.com/almadon/conformIT)'s audit"
-            echo "workflow, run \`${GITHUB_RUN_ID}\`."
-            echo
-            for f in /tmp/reporting-repo/reports/*.md; do
-              [ -f "$f" ] || continue
-              b="$(basename "$f")"
-              echo "- [$b](reports/$b)"
-            done
-          } > /tmp/reporting-repo/README.md
-
-          cd /tmp/reporting-repo
-          git config user.name "conformIT audit"
-          git config user.email "actions@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No change in findings since the last run; nothing to commit."
-          else
-            git commit --quiet -m "chore: update audit reports (run ${GITHUB_RUN_ID})"
-            git push --quiet
-          fi
-        env:
-          CONFORMIT_REPORTING_TOKEN: ${{ secrets.CONFORMIT_REPORTING_TOKEN }}
+    uses: ./.github/workflows/reusable-audit.yml
+    with:
+      reporting_repo: almadon/conformIT-reporting
+    secrets:
+      reporting_token: ${{ secrets.CONFORMIT_REPORTING_TOKEN }}

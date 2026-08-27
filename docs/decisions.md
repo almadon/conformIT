@@ -675,3 +675,75 @@ trusting a check because it looks reasonable on paper.
 to differ from the plain stdout shape beyond "same content, different
 destination," at which point a single shared code path stops being the
 right design.
+
+## 17. A reusable workflow, not a GitHub App, so any org can adopt this for itself
+
+The maintainer asked how to make the audit/reporting setup portable to
+other organizations (flashCtrl named as the example), and specifically
+whether it should be a GitHub App.
+
+**Chosen:** `.github/workflows/reusable-audit.yml`, `on: workflow_call`,
+parameterized by `targets` (optional inline list), `reporting_repo`
+(required), and `reporting_token` (optional secret, publish step skips
+without it). conformIT's own `audit.yml` becomes a thin caller of it,
+same-repo relative reference, no ref needed. An external org calls it by
+`owner/repo@<pinned-ref>` from their own thin wrapper workflow, with
+their own registry, their own reporting repo, their own credential.
+`scripts/conform.sh audit --all` gained `--targets-file <path>` to make
+this possible; the argument parser for `--all` was rewritten as a proper
+flag loop to accommodate it alongside `--detail-dir` in any combination.
+
+**Why not a GitHub App:** an App earns its cost when one identity needs
+write access into *many different orgs'* repos at once, installed and
+revoked per-org through GitHub's own UI. That's not this. In the
+distributed model the maintainer described, each org runs its own copy,
+in its own Actions, with its own credential; conformIT never holds
+flashCtrl's token, and flashCtrl never holds anyone else's. Adding a
+GitHub App here would mean hosting something (or at minimum, holding an
+App private key somewhere to mint installation tokens), and would
+concentrate exactly the kind of cross-org credential surface
+security-posture.md rule 2 already argues against, worse than today's
+design, not better. A GitHub App becomes the right tool only if the
+model changes to genuinely centralized, one-pipeline-many-orgs auditing,
+which is a different product built on a different trust relationship,
+not an incremental step from this one.
+
+**Two real bugs caught by checking documentation before writing code,
+not by running it and finding out:**
+
+1. A bare `actions/checkout` inside a called reusable workflow checks
+   out the *caller's* repo by default, not the repo the reusable
+   workflow itself lives in. Confirmed against GitHub's own docs before
+   writing the checkout step; an earlier instinct (skip verifying,
+   assume default checkout means "checkout yourself") would have shipped
+   a workflow that silently checked out whatever the caller happened to
+   have, for external callers specifically, the one case where being
+   wrong actually breaks something. Fixed with `job.workflow_repository`
+   / `job.workflow_sha`, GitHub's documented answer for exactly this.
+2. `inputs.targets` and `secrets.reporting_token` are passed through
+   `env:` in every step that uses them, never interpolated directly into
+   a `run:` block. A `${{ inputs.targets }}` spliced straight into shell
+   text is a real injection surface for an external caller's own input,
+   not a hypothetical one; routing it through an environment variable
+   means a crafted value is text a variable holds, not text the shell
+   parses.
+
+**What it cost:** every external adopter now depends on conformIT
+itself as pinned infrastructure, the same way conformIT depends on
+`actions/checkout` and `gitleaks`. If conformIT's reusable workflow
+changes in a breaking way, an adopter pinned to an old tag is protected;
+an adopter on `@main` is not, and nothing here can enforce which one
+they choose. The `targets` input, when used, means an external org's
+list lives inline in their own workflow YAML rather than in a
+separately versioned file the way `registry/targets.yaml` is for
+conformIT itself; a real, accepted asymmetry between the two calling
+patterns, not an oversight.
+
+**What would justify revisiting:** if a genuinely centralized use case
+shows up later (see "why not a GitHub App" above); if an adopter with a
+long target list finds the inline-string `targets` input awkward enough
+to want a file-based alternative, at which point a second input mode
+(a path checked out from the caller's own repo, which needs its own
+checkout step and was deliberately not built now to avoid the
+ambiguity that already had to be resolved once for conformIT's own
+checkout) would be worth the added complexity.

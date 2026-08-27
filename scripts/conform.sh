@@ -4,8 +4,8 @@
 # Usage:
 #   scripts/conform.sh audit <path>          audit a local checkout
 #   scripts/conform.sh audit <owner/repo>    clone (public, read-only) and audit
-#   scripts/conform.sh audit --all [--detail-dir <dir>]
-#                                             audit every repo in registry/targets.yaml
+#   scripts/conform.sh audit --all [--detail-dir <dir>] [--targets-file <path>]
+#                                             audit every repo in a targets file
 #   scripts/conform.sh init                  not implemented yet, see docs/STATE.md
 #
 # `--detail-dir <dir>`: write each target's full per-finding detail
@@ -15,6 +15,11 @@
 # locally. With it, stdout carries only the summary table (counts, no
 # samples), meant for a destination with wider visibility than the
 # detail should have. See docs/decisions.md #16.
+#
+# `--targets-file <path>`: read the target list from <path> instead of
+# this repo's own registry/targets.yaml. What makes `audit --all`
+# reusable from another org's own workflow instead of only auditing
+# conformIT's own declared registry. See docs/decisions.md #17.
 #
 # `audit` reports. It never rewrites the target and never writes anything
 # back to conformIT itself. See docs/decisions.md #2 (no --fix, ever),
@@ -40,8 +45,27 @@ usage() {
 }
 
 cmd_audit_all() {
-  local detail_dir="${1:-}"
+  local detail_dir=""
   local targets_file="$ROOT/registry/targets.yaml"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --detail-dir)
+        [ -z "${2:-}" ] && { echo "conform.sh: --detail-dir needs a path" >&2; exit 1; }
+        detail_dir="$2"
+        shift 2
+        ;;
+      --targets-file)
+        [ -z "${2:-}" ] && { echo "conform.sh: --targets-file needs a path" >&2; exit 1; }
+        targets_file="$2"
+        shift 2
+        ;;
+      *)
+        echo "conform.sh: unrecognised argument to audit --all: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
   local workdir rows_file
   workdir="$(mktemp -d)"
   rows_file="$workdir/rows.md"
@@ -77,7 +101,7 @@ cmd_audit_all() {
   echo
   echo "Run: $(date -u +%Y-%m-%dT%H:%MZ)"
   echo
-  echo "Read-only. Public repos declared in \`registry/targets.yaml\`,"
+  echo "Read-only. Public repos declared in \`$targets_file\`,"
   echo "cloned fresh for this run. Nothing is written back to any target."
   if [ -n "$detail_dir" ]; then
     echo
@@ -196,15 +220,8 @@ case "${1:-}" in
   audit)
     case "${2:-}" in
       --all)
-        if [ "${3:-}" = "--detail-dir" ]; then
-          if [ -z "${4:-}" ]; then
-            echo "conform.sh: --detail-dir needs a path" >&2
-            exit 1
-          fi
-          cmd_audit_all "$4"
-        else
-          cmd_audit_all
-        fi
+        shift 2
+        cmd_audit_all "$@"
         ;;
       "")
         echo "conform.sh: audit needs a path, an owner/repo, or --all" >&2

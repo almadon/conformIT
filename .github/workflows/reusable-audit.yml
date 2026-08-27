@@ -1,0 +1,156 @@
+name: conformIT reusable audit
+
+# The portable version of conformIT's own audit.yml, callable from any
+# org's own workflow via `workflow_call`. Nothing here is specific to
+# almadon: the caller supplies its own target list and its own reporting
+# destination, and conformIT never sees or holds the caller's credential
+# beyond the single job run it's passed into. See docs/decisions.md #17
+# for why this is a reusable workflow and not a GitHub App.
+#
+# Two destinations, same split as conformIT's own use (decision #16):
+# the job summary (posted in the CALLER's repo, at whatever visibility
+# that repo has) gets counts only; the caller's own reporting repo gets
+# the full per-finding detail. Report-only except for a likely secret
+# (CRIT), which fails the job outright; see decisions.md #13.
+#
+# Pin this by tag or commit SHA when calling it from another repo
+# (`uses: almadon/conformIT/.github/workflows/reusable-audit.yml@<ref>`),
+# per security-posture.md rule 8 applied to conformIT as a dependency,
+# not just the dependencies conformIT itself takes on. `@main` is a
+# floating target the same rule already argues against.
+
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: >
+          Optional inline target list, one `owner/repo` per line (same
+          shape as registry/targets.yaml's bulleted list; the `targets:`
+          wrapper key is cosmetic and not required). Leave unset to use
+          this repo's own default registry/targets.yaml instead - what
+          conformIT's own caller workflow does, since it has no reason
+          to duplicate its own file as an inline string.
+        type: string
+        required: false
+        default: ""
+      reporting_repo:
+        description: >
+          owner/repo of the private reporting destination, e.g.
+          flashctrl/flashctrl-reporting. That repo must already exist;
+          this workflow never creates one.
+        type: string
+        required: true
+    secrets:
+      reporting_token:
+        description: >
+          Fine-grained PAT scoped to reporting_repo only, `contents:
+          write`, nothing else. If omitted, the publish step is skipped,
+          not failed, and only the job summary (counts only) is
+          produced.
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      # Secrets can't be referenced directly in a step's `if:`; see the
+      # matching comment in audit.yml, the same fix applied here.
+      HAVE_REPORTING_TOKEN: ${{ secrets.reporting_token != '' }}
+    steps:
+      - name: Check out conformIT
+        # A bare actions/checkout inside a called reusable workflow
+        # checks out the CALLER's repo by default, not the repo the
+        # reusable workflow itself lives in - confirmed against GitHub's
+        # own docs before writing this, not assumed (an earlier draft of
+        # conformIT's own audit.yml made a similar wrong assumption
+        # about `if:` and secrets, caught the same way). `job.
+        # workflow_repository` / `job.workflow_sha` are GitHub's
+        # documented answer: the repo and commit that actually define
+        # this job, regardless of who called it or by what reference.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+
+      - name: Install gitleaks
+        # Pinned to v8.30.1, linux_x64, sha256-verified against the
+        # checksums file gitleaks publishes with the release. MIT
+        # licensed; see docs/credits.md. Used for the secrets check in
+        # scripts/lib/audit-checks.sh; that check still works without
+        # this step, at reduced coverage, if this ever breaks.
+        run: |
+          set -euo pipefail
+          cd /tmp
+          curl -sSL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" \
+            | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Run the audit against every declared target
+        # `inputs.targets` is passed through an env var rather than
+        # interpolated directly into this script, so a crafted input
+        # value is shell text a variable holds, never text the shell
+        # itself parses. Same reasoning as never interpolating a secret
+        # directly into a run: block.
+        env:
+          CONFORMIT_TARGETS_INPUT: ${{ inputs.targets }}
+        run: |
+          set -euo pipefail
+          targets_file="registry/targets.yaml"
+          if [ -n "$CONFORMIT_TARGETS_INPUT" ]; then
+            targets_file="$(mktemp)"
+            printf '%s\n' "$CONFORMIT_TARGETS_INPUT" > "$targets_file"
+          fi
+          bash scripts/conform.sh audit --all \
+            --targets-file "$targets_file" \
+            --detail-dir /tmp/conformit-detail \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish full detail to the private reporting repo
+        if: ${{ always() && env.HAVE_REPORTING_TOKEN == 'true' }}
+        env:
+          CONFORMIT_REPORTING_TOKEN: ${{ secrets.reporting_token }}
+          CONFORMIT_REPORTING_REPO: ${{ inputs.reporting_repo }}
+        run: |
+          set -euo pipefail
+          git clone --quiet \
+            "https://x-access-token:${CONFORMIT_REPORTING_TOKEN}@github.com/${CONFORMIT_REPORTING_REPO}.git" \
+            /tmp/reporting-repo
+          mkdir -p /tmp/reporting-repo/reports
+          rm -f /tmp/reporting-repo/reports/*.md
+          cp /tmp/conformit-detail/*.md /tmp/reporting-repo/reports/ 2>/dev/null || true
+
+          {
+            echo "# Latest reports"
+            echo
+            echo "Regenerated every run; this listing and every file under"
+            echo "\`reports/\` are overwritten in place. Their git history"
+            echo "is the trend record. Generated by"
+            echo "[conformIT](https://github.com/almadon/conformIT)'s"
+            echo "reusable audit workflow, called from"
+            echo "\`${GITHUB_REPOSITORY}\`, run \`${GITHUB_RUN_ID}\`."
+            echo
+            for f in /tmp/reporting-repo/reports/*.md; do
+              [ -f "$f" ] || continue
+              b="$(basename "$f")"
+              echo "- [$b](reports/$b)"
+            done
+          } > /tmp/reporting-repo/README.md
+
+          cd /tmp/reporting-repo
+          git config user.name "conformIT audit"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No change in findings since the last run; nothing to commit."
+          else
+            git commit --quiet -m "chore: update audit reports (run ${GITHUB_RUN_ID})"
+            git push --quiet
+          fi
