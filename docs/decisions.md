@@ -624,15 +624,27 @@ gives `prompts/`/`registry/`-shaped content, applied to a whole repo
 instead of a directory within one. Its own README says so, so a visitor
 doesn't wonder why it doesn't follow conformIT's own rules.
 
-**What I did not verify:** the actual cross-repo commit-and-push, since
-the credential doesn't exist yet at the time this was written. Verified
-instead: the `--detail-dir` split produces exactly the intended
-public/private content shapes, tested against all six live registry
-targets; the redacted email check, tested against a synthetic fixture; a
-generic `if: env.X == 'true'` skip pattern against GitHub's documented
-guidance, not against a real run. The reporting repo's own initial
-commit and push, done directly rather than through the workflow, did
-succeed and is signed.
+**Verified the same day, once the credential existed**: triggered the
+workflow by hand (`gh workflow run`) rather than waiting for Monday. Full
+green run including the publish step; `almadon/conformIT-reporting` got
+a real commit with all six report files and a correctly regenerated
+README index; the secrets check used the real `gitleaks` engine in CI,
+not the local heuristic fallback, confirming the pinned install works on
+GitHub's actual infrastructure and not just in a local reproduction; the
+`HAVE_REPORTING_TOKEN` job-level env var evaluated to `true` in the job
+logs, confirming the fix made after catching the wrong `if: secrets.X`
+draft against GitHub's own docs. Before this, verified: the
+`--detail-dir` split's content shapes, tested against all six live
+targets; the redacted email check, against a synthetic fixture; the
+reporting repo's own initial commit and push, done by hand rather than
+through the workflow.
+
+One non-blocking finding from the real run's own annotations: GitHub
+flagged the pinned `actions/checkout` SHA as targeting the deprecated
+Node 20 runtime, auto-forced onto Node 24 as a compatibility shim for
+now. Nothing failed. A version bump is coming due at some point; not
+done here, since it's a separate, deliberate pin update per rule 8, not
+a side effect of confirming this feature works.
 
 **Found by running conformIT's own audit against its own working tree
 right after writing the new workflow step, fixed in the same change**:

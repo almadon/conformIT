@@ -10,16 +10,20 @@ whether reports should go to a private "meta" repo instead of
 conformIT's own public job summary. Built `almadon/conformIT-reporting`
 (private) plus a `--detail-dir` split in `scripts/conform.sh audit --all`
 so the public summary carries counts only and the private repo carries
-full per-finding detail (decision #16). Found and fixed a real gap while
-building it: the email check had been printing the actual discovered
-address into the public summary this whole time, unlike the secrets and
-private-URL checks, which already redacted to `file:line`. **Not yet
-live end to end**: the reporting repo exists and its initial commit is
-pushed, but the workflow's publish step needs a
-`CONFORMIT_REPORTING_TOKEN` secret (fine-grained PAT, scoped to that repo
-only, `contents: write`) that the maintainer is adding themselves. Until
-it exists, that step is skipped, not failed, and the workflow behaves
-exactly as before.
+full per-finding detail (decision #16). Found and fixed two real gaps
+while building it: the email check had been printing the actual
+discovered address into the public summary this whole time (unlike the
+secrets and private-URL checks, already redacted), and it didn't
+recognize GitHub's own `users.noreply.github.com` convention, which this
+same workflow's own bot commits use. **Now live end to end**: the
+maintainer added `CONFORMIT_REPORTING_TOKEN` the same day, the workflow
+was triggered by hand to confirm rather than waiting for the Monday
+schedule, and the full path worked on the first real run, including the
+real `gitleaks` engine in CI (not the local heuristic fallback). One
+non-blocking finding from that run: GitHub flagged the pinned
+`actions/checkout` SHA as targeting the deprecated Node 20 runtime,
+auto-forced onto Node 24 for now. A version bump is due at some point;
+not done here, since it wasn't what was being verified.
 
 Seventh session (previous day): surveyed
 external standards for AI-assisted work and adopted two (decision #15).
@@ -107,15 +111,17 @@ categories already drafted. See "gaps against that scope" below.
   implementation.
 - **`.github/workflows/audit.yml` runs it weekly** (Mondays, 13:00 UTC)
   and on manual dispatch, against the six repos currently declared in
-  `registry/targets.yaml` (conformIT itself included, deliberately). Not
-  yet observed running for real on a schedule, only tested by running
-  the same script locally against the same repos; see decision #12.
-- **`almadon/conformIT-reporting` (private) exists**, seeded with an
-  initial commit, but the workflow's publish step to it hasn't run for
-  real: it needs a `CONFORMIT_REPORTING_TOKEN` secret in this repo,
-  fine-grained PAT, scoped to that repo only, `contents: write`, and the
-  maintainer hasn't added it yet. Until it does, that step is skipped
-  and everything else behaves as before; see decision #16.
+  `registry/targets.yaml` (conformIT itself included, deliberately).
+  Confirmed working via a manual `gh workflow run` trigger, full green
+  run; not yet observed on the actual Monday cron, which is a real
+  difference (dispatch and schedule are different trigger paths in
+  GitHub Actions) but not one there's reason to expect behaves any
+  differently. See decision #12.
+- **`almadon/conformIT-reporting` (private) exists and is live**: the
+  maintainer added `CONFORMIT_REPORTING_TOKEN` the same day it was
+  requested, and the first real publish run succeeded, six report files
+  plus a regenerated README index, using the real `gitleaks` engine in
+  CI. See decision #16.
 - **`templates/` is partially populated.** `.githooks/commit-msg`,
   `.githooks/pre-commit` (the em-dash check), `.gitmessage`,
   `docs/README.md` (decision #14), and now `AGENTS.md` plus a `CLAUDE.md`
