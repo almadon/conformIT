@@ -642,9 +642,16 @@ through the workflow.
 One non-blocking finding from the real run's own annotations: GitHub
 flagged the pinned `actions/checkout` SHA as targeting the deprecated
 Node 20 runtime, auto-forced onto Node 24 as a compatibility shim for
-now. Nothing failed. A version bump is coming due at some point; not
-done here, since it's a separate, deliberate pin update per rule 8, not
-a side effect of confirming this feature works.
+now. Nothing failed. **Bumped the same day**, once asked: `v4` to `v7`
+(v7.0.1, latest release at the time). Checked before pinning, not
+assumed from the version number, that `action.yml` at that commit
+actually declares `using: node24`. Also checked the intervening release
+notes (v5 through v7) for anything that would break this workflow's
+plain, input-less checkout: the only behavioural change (v7 blocking
+fork-PR checkout for `pull_request_target`/`workflow_run`) doesn't apply
+to a `schedule`/`workflow_dispatch`-triggered job. Two majors in one
+jump rather than stepping through v5 and v6 individually, since nothing
+in between was itself worth pinning to on its own.
 
 **Found by running conformIT's own audit against its own working tree
 right after writing the new workflow step, fixed in the same change**:
