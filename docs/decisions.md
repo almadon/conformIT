@@ -739,6 +739,20 @@ separately versioned file the way `registry/targets.yaml` is for
 conformIT itself; a real, accepted asymmetry between the two calling
 patterns, not an oversight.
 
+This applies to *additive*, non-breaking changes too, not just breaking
+ones, and it showed up almost immediately: decision #18 (the semgrep
+SAST check) landed after `v2` was already cut and referenced by
+flashDK's PR, with no tag bump alongside it. A pin doesn't just protect
+against breakage; it also silently withholds every new check added
+after it, whether or not the new check would have broken anything. Cut
+`v3` and bumped every reference (the template, this README, flashDK's
+PR) once this was noticed, but noticed only because the maintainer
+asked directly whether existing deployments needed anything, not
+because tagging a new feature is currently forced or checked. There is
+no automation yet ensuring a feature commit gets a version bump; that's
+a real, currently-manual discipline this project asks of itself and of
+every downstream reference to it.
+
 **What would justify revisiting:** if a genuinely centralized use case
 shows up later (see "why not a GitHub App" above); if an adopter with a
 long target list finds the inline-string `targets` input awkward enough

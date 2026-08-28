@@ -102,7 +102,7 @@ Picking wrong doesn't break anything, but it does mean redoing setup
 work later, so it's worth reading both before choosing.
 
 **Reference conformIT directly** (`uses:
-almadon/conformIT/.github/workflows/reusable-audit.yml@v1` in your own
+almadon/conformIT/.github/workflows/reusable-audit.yml@v3` in your own
 workflow, per [`templates/.github/workflows/conform-audit.yml`](templates/.github/workflows/conform-audit.yml)):
 you get the standards as conformIT defines them, unmodified, and the
 audit tooling stays current with zero effort on your part beyond
