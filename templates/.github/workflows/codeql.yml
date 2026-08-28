@@ -1,0 +1,75 @@
+# conformIT CodeQL scaffold.
+#
+# Deeper static analysis than conformIT's own audit can offer: genuine
+# dataflow analysis (does untrusted input reach a dangerous sink), not
+# pattern matching. Not part of conformIT's audit tooling and never
+# will be, deliberately: CodeQL needs to know how to build your code,
+# which is something only your own repo's CI can configure, not
+# something a generic "clone anyone's repo and scan it" tool can supply.
+# See docs/decisions.md #18 and docs/credits.md.
+#
+# Copy into your own repo as .github/workflows/codeql.yml. Fill in
+# `language` below (GitHub Actions run: https://github.com/github/codeql-action#supported-languages
+# lists what CodeQL supports); delete the `build-mode: manual` step and
+# its `if:` guard if `autobuild` works for your language and build
+# system, which it does for most.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 14 * * 3" # weekly; change to taste
+
+permissions:
+  contents: read
+  security-events: write # required to upload results
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One or more of: actions, c-cpp, csharp, go, java-kotlin,
+        # javascript-typescript, python, ruby, rust, swift.
+        language: [ "[fill in]" ]
+        build-mode: [ autobuild ]
+
+    steps:
+      - name: Check out
+        # Pinned to actions/checkout v7.0.1, confirmed
+        # (`gh api repos/actions/checkout/git/refs/tags/v7`) the same
+        # way conformIT's own workflows pin it. Re-verify before
+        # bumping.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Initialize CodeQL
+        # Pinned to codeql-action v4's current commit, confirmed via
+        # `gh api repos/github/codeql-action/git/refs/tags/v4` and then
+        # dereferencing that tag object to its actual commit (v4 is an
+        # annotated tag, not a direct commit ref: `gh api
+        # repos/github/codeql-action/git/tags/<tag-sha>` to get there).
+        # Re-verify the same way before bumping.
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # Delete this step (and its `if:` guard above) if your language's
+      # autobuild works. It does for most; compiled languages with an
+      # unusual build layout sometimes need explicit build commands
+      # here instead.
+      - name: Manual build
+        if: matrix.build-mode == 'manual'
+        run: |
+          echo "Replace this with your actual build commands."
+          exit 1
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        with:
+          category: "/language:${{ matrix.language }}"

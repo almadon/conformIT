@@ -78,9 +78,21 @@ this section used to promise, is still just a stub; see
 
 For a new project's `README.md`, copy
 [`templates/docs/README.md`](templates/docs/README.md) by hand for now;
-`init` will place it automatically once it exists (decision #14). Same for [`templates/AGENTS.md`](templates/AGENTS.md) and
+`init` will place it automatically once it exists (decision #14). Same
+for [`templates/AGENTS.md`](templates/AGENTS.md) and
 [`templates/CLAUDE.md`](templates/CLAUDE.md) (decision #15). Copy both;
 `CLAUDE.md` is one line and doesn't need editing.
+
+To run the recurring audit against your own repos, from your own
+org, without forking anything: copy
+[`templates/.github/workflows/conform-audit.yml`](templates/.github/workflows/conform-audit.yml).
+It calls `.github/workflows/reusable-audit.yml` here, and your org
+never shares a credential with conformIT or with any other adopter;
+each org holds its own reporting-repo token, referenced only inside its
+own job. See decision [#17](docs/decisions.md) for why this is a
+reusable workflow rather than a GitHub App, and
+["Reference or fork?"](#reference-or-fork) below for the deeper choice
+between this and actually forking.
 
 ## Reference or fork?
 
@@ -159,6 +171,17 @@ on purpose: it fails the job outright and the report tells you to rotate
 the credential and notify everyone with access, immediately, before
 doing anything else. See decision [#13](docs/decisions.md) for what this
 does and doesn't cover (current tree only, not git history).
+
+The audit also runs a static-analysis (SAST) pass via
+[semgrep](https://github.com/semgrep/semgrep), pinned; see
+[credits.md](docs/credits.md). Real but partial coverage, stated
+plainly rather than oversold: tested against a fixture with both a
+command-injection pattern (caught) and a string-concatenated SQL query
+(missed by the two rulesets used). For genuine dataflow analysis,
+[CodeQL](https://codeql.github.com/) is offered as a separate template
+(`templates/.github/workflows/codeql.yml`) an adopter runs on their own
+repo, since it needs per-repo build configuration this generic audit
+can't supply. See decision [#18](docs/decisions.md).
 
 ## Provenance
 

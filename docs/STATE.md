@@ -5,7 +5,21 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-08-27. Eighth session: the maintainer asked
+**Last updated:** 2026-08-28. Ninth session: made the audit portable
+(`.github/workflows/reusable-audit.yml`, `on: workflow_call`) so any
+org can adopt it without a GitHub App, tested against a genuine cross-
+org caller (`flashctrl/flashDK`, PR pending review), plus a fork-
+portability fix and a "reference or fork?" comparison in README.md
+(decisions.md #17). Then added a SAST check via semgrep, with CodeQL
+offered as a separate opt-in template for adopters who want deeper,
+per-repo-configured analysis (decisions.md #18). Two real bugs caught
+by checking documentation before writing code rather than by running it
+and finding out: a bare `actions/checkout` inside a reusable workflow
+checks out the *caller's* repo by default, not conformIT's own; secrets
+can't be referenced directly in a step's `if:` (a second instance of
+that exact gotcha).
+
+Eighth session (previous day): the maintainer asked
 whether reports should go to a private "meta" repo instead of
 conformIT's own public job summary. Built `almadon/conformIT-reporting`
 (private) plus a `--detail-dir` split in `scripts/conform.sh audit --all`
@@ -103,6 +117,25 @@ categories already drafted. See "gaps against that scope" below.
 
 ## What is not built yet
 
+- **The semgrep SAST check hasn't run in real CI yet**, only verified
+  locally: installed pinned (`pip install semgrep==1.175.0`) in an
+  isolated venv, tested against a synthetic fixture with a real command-
+  injection pattern (caught, correct file:line, no code content leaked)
+  and confirmed clean against conformIT's own codebase. The CI install
+  step in `reusable-audit.yml` hasn't been triggered and watched yet;
+  that's the next thing to confirm, the same way gitleaks's CI install
+  was confirmed after building it.
+- **`flashctrl/flashDK`'s cross-org caller PR is open, not merged or
+  triggered yet** ([PR #11](https://github.com/flashctrl/flashDK/pull/11),
+  now pinned to `v2`). The reporting repo
+  (`flashctrl/flashDK-reporting`) exists and has its initial commit; the
+  actual publish run through the reusable workflow, as a genuine
+  external caller rather than conformIT's own self-call, hasn't
+  happened yet. GitHub Actions only makes a workflow dispatchable once
+  it's on the repo's default branch, so this specifically needs the PR
+  merged (or `workflow_dispatch` targeted at the branch once GitHub
+  picks it up) before it can be triggered and watched the way every
+  other feature here has been.
 - **`scripts/conform.sh audit` exists and works.** `init` still doesn't;
   running it prints a message pointing here instead of silently doing
   nothing. Audit supports a local path, an `owner/repo` shorthand, and

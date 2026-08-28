@@ -233,6 +233,63 @@ _conformit_scan_private_urls() {
   done
 }
 
+# --- static analysis (SAST) --------------------------------------------------
+#
+# semgrep (semgrep.dev, LGPL-2.1) if it's on PATH; skipped, not
+# defaulted to a false pass, otherwise. Every other check here scans
+# text with no build step and works the same way across any language;
+# real vulnerability scrutiny doesn't share that property, since the
+# strong tools work by understanding what the code does, which mostly
+# means parsing or building it per-language. semgrep is the one that
+# still fits this repo's "clone, scan, discard" shape without needing
+# per-adopter build configuration: most rules work directly against
+# source text via AST matching, no compile step. CodeQL is the deeper
+# tool (genuine dataflow analysis, not pattern matching) but needs to
+# know how to build the target, which has to be configured by the
+# target repo's own CI, not something this audit can supply generically
+# for an arbitrary clone; see templates/.github/workflows/codeql.yml
+# for that path instead. See docs/decisions.md #18.
+#
+# Two curated open rulesets, not semgrep's --config=auto (which pulls
+# from its registry based on auto-detected languages and nudges toward
+# an account login in newer versions; these two don't). Coverage is
+# real but partial: tested against a synthetic fixture with both a
+# shell-injection call and a string-concatenated SQL query, this
+# combination caught the first and missed the second. A clean result
+# means "nothing these specific rules catch," not "no vulnerabilities."
+#
+# A 5-minute timeout bounds a pathological repo rather than letting a
+# single target hang the whole audit run.
+_conformit_scan_sast() {
+  local repo="$1"
+  local report
+  report="$(mktemp)"
+  if ! ( cd "$repo" && timeout 300 semgrep \
+    --config "p/security-audit" --config "p/owasp-top-ten" \
+    --json --output "$report" --quiet . >/dev/null 2>&1 ); then
+    rm -f "$report"
+    return 1
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$report" <<'PY'
+import json, sys
+report_path = sys.argv[1]
+try:
+    with open(report_path) as f:
+        data = json.load(f)
+except Exception:
+    sys.exit(0)
+for item in data.get("results", []) or []:
+    path = item.get("path", "?")
+    line = item.get("start", {}).get("line", "?")
+    rule = item.get("check_id", "unknown-rule")
+    print(f"{path}:{line}:{rule}")
+PY
+  fi
+  rm -f "$report"
+  return 0
+}
+
 conformit_audit_repo() {
   # conformit_audit_repo <repo-path> <label> <rows-file>
   # Prints a markdown "details" section to stdout. Appends one summary row
@@ -371,6 +428,29 @@ conformit_audit_repo() {
     count=$(printf '%s\n' "$url_hits" | grep -c .)
     sample=$(printf '%s\n' "$url_hits" | head -3 | paste -sd '; ' -)
     _conformit_note FAIL "$count private address(es)/hostname(s), e.g. $sample"
+  fi
+
+  # --- static analysis (SAST) ------------------------------------------------
+  # See docs/decisions.md #18 for why this is semgrep specifically and
+  # what it doesn't cover. Absence of semgrep is WARN, not PASS: every
+  # other check here means "looked, found nothing" when it passes, and
+  # reporting PASS for a check that didn't run would say something
+  # false. There's no honest heuristic fallback for "contains a SQL
+  # injection" the way there is for "looks like an AWS key," so there's
+  # no reduced-coverage middle ground the way secrets has.
+  if command -v semgrep >/dev/null 2>&1; then
+    local sast_hits
+    sast_hits="$(_conformit_scan_sast "$REPO" | sed '/^$/d')"
+    if [ -z "$sast_hits" ]; then
+      _conformit_note PASS "no findings from semgrep's security-audit/owasp-top-ten rules"
+    else
+      local count sample
+      count=$(printf '%s\n' "$sast_hits" | grep -c .)
+      sample=$(printf '%s\n' "$sast_hits" | head -3 | paste -sd '; ' -)
+      _conformit_note FAIL "$count static-analysis finding(s) (semgrep), e.g. $sample"
+    fi
+  else
+    _conformit_note WARN "semgrep not on PATH: SAST check did not run"
   fi
 
   # --- tooling presence, informational -------------------------------------

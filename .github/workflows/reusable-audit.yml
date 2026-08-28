@@ -100,6 +100,21 @@ jobs:
           sudo mv gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
+      - name: Install semgrep
+        # Pinned to v1.175.0. LGPL-2.1; see docs/credits.md. Distributed
+        # via PyPI, not a downloadable binary the way gitleaks is, so
+        # this pins the version rather than verifying a checksum against
+        # the whole dependency tree (`pip install --require-hashes`
+        # needs every transitive dependency hash-pinned too, real,
+        # ongoing lockfile maintenance disproportionate to what this
+        # buys here). A lighter verification bar than gitleaks,
+        # deliberately, not overlooked; PyPI's own integrity and TLS
+        # guarantees are what's being relied on instead, the same trust
+        # model most pip/npm-pinned dependencies already use. Used for
+        # the SAST check in scripts/lib/audit-checks.sh; that check is
+        # skipped, not defaulted to a false pass, without this step.
+        run: pip install --quiet "semgrep==1.175.0"
+
       - name: Run the audit against every declared target
         # `inputs.targets` is passed through an env var rather than
         # interpolated directly into this script, so a crafted input

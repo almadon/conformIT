@@ -777,3 +777,78 @@ shortcuts, no "we'll generalize it later") is what made this a five-line
 fix instead of a redesign. The cost of that discipline was paid already,
 in decision #17's own body above; this addendum is the payoff showing up
 one question later.
+
+## 18. Semgrep for the audit's SAST check, CodeQL as a separate opt-in template
+
+The maintainer asked whether "actively scrutinizing the codebase," not
+just matching known advisories, was achievable through an existing
+library.
+
+**Chosen:** [semgrep](https://github.com/semgrep/semgrep) (LGPL-2.1),
+integrated into `scripts/lib/audit-checks.sh` the same way as gitleaks:
+prefer it on `PATH`, skip the check (not a false pass) when it isn't
+there. Two curated open rulesets, `p/security-audit` and
+`p/owasp-top-ten`, not `--config=auto` (registry-driven, nudges toward
+an account login in newer versions). [CodeQL](https://codeql.github.com/)
+is offered as a separate template
+(`templates/.github/workflows/codeql.yml`) for an adopter's own CI, not
+folded into the audit tool.
+
+**Why semgrep for the audit and not CodeQL:** every other check in this
+file scans text, line by line, with no build step, uniformly across any
+language, which is what makes "clone shallowly, scan, discard" work as
+a model at all. Genuine vulnerability scrutiny doesn't share that
+property. CodeQL does real dataflow analysis, tracing whether untrusted
+input reaches a dangerous sink, not pattern matching, which is why it's
+the stronger tool; the cost is that it needs to know how to build the
+target, and that configuration is inherently per-repo, not something a
+generic "clone anyone's repo" audit can supply. Semgrep's rules mostly
+work directly against source text via AST matching, no compile step,
+which is the one property that lets it fit conformIT's existing
+architecture instead of needing its own.
+
+**Two things confirmed by actually running it against a real fixture,
+not assumed from the tool's own marketing:**
+
+1. It works: a synthetic `subprocess.call(..., shell=True)` command-
+   injection pattern was correctly caught, with a real rule ID and line
+   number, no code content in the report (consistent with every other
+   check here).
+2. It's real but partial coverage, in the same test: a string-
+   concatenated SQL query in the same fixture, run through the same two
+   rulesets, was not caught. Recorded in the code comment directly
+   above the check, not left implicit: a clean result means "nothing
+   these specific rules catch," not "no vulnerabilities."
+
+**A distinct severity choice**: any semgrep finding maps to FAIL, not
+CRIT. CRIT is reserved for secrets specifically, per decision #13's own
+reasoning (an active, rotate-now response distinct from every other
+finding). A static-analysis finding is real but doesn't have that same
+"already compromised, act now" shape; treating it the same as a leaked
+key would blur a distinction decision #13 deliberately drew.
+
+**A distinct honesty choice**: semgrep's absence maps to WARN, not PASS.
+Every other check in this file means "looked, found nothing" when it
+passes. Reporting PASS for a check that didn't run would say something
+false, and there's no honest heuristic fallback for "contains a SQL
+injection" the way the secrets check has one for "looks like an AWS
+key" (decision #13); absence here is a real gap, not a graceful
+degradation, and the report says so.
+
+**What it cost:** semgrep distributes through PyPI with a real
+dependency tree, not a single downloadable binary the way gitleaks is.
+Fully hash-pinning it (`pip install --require-hashes`) needs every
+transitive dependency hash-pinned too, real, ongoing lockfile
+maintenance disproportionate to what it buys here. Pinned the version
+instead, without a checksum, and said so plainly in `docs/credits.md`
+rather than presenting it as equivalent rigor to gitleaks's verified
+download. A 5-minute timeout bounds a pathological target rather than
+letting one repo hang the whole run, an operational cost the other
+checks don't need since they're all fast, single-pass text scans.
+
+**What would justify revisiting:** a false-negative or false-positive
+rate from real use that argues for a different ruleset or a different
+tool; an adopter wanting CodeQL results folded into the same report as
+the rest of the audit, which isn't possible without conformIT
+generically configuring per-language builds, itself a much larger
+undertaking than this decision took on.
