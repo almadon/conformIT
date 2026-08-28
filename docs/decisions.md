@@ -846,6 +846,12 @@ download. A 5-minute timeout bounds a pathological target rather than
 letting one repo hang the whole run, an operational cost the other
 checks don't need since they're all fast, single-pass text scans.
 
+**Verified in real CI the same day**: triggered the workflow by hand
+rather than waiting for the schedule. `pip install semgrep==1.175.0`
+succeeded on the real runner, the check ran, and correctly reported
+`PASS` on conformIT's own codebase, confirmed by reading the actual
+published report rather than trusting the green checkmark alone.
+
 **What would justify revisiting:** a false-negative or false-positive
 rate from real use that argues for a different ruleset or a different
 tool; an adopter wanting CodeQL results folded into the same report as

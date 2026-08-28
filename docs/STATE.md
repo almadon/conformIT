@@ -117,14 +117,18 @@ categories already drafted. See "gaps against that scope" below.
 
 ## What is not built yet
 
-- **The semgrep SAST check hasn't run in real CI yet**, only verified
-  locally: installed pinned (`pip install semgrep==1.175.0`) in an
+- **The semgrep SAST check works, verified both locally and in real CI.**
+  Locally: installed pinned (`pip install semgrep==1.175.0`) in an
   isolated venv, tested against a synthetic fixture with a real command-
-  injection pattern (caught, correct file:line, no code content leaked)
-  and confirmed clean against conformIT's own codebase. The CI install
-  step in `reusable-audit.yml` hasn't been triggered and watched yet;
-  that's the next thing to confirm, the same way gitleaks's CI install
-  was confirmed after building it.
+  injection pattern (caught, correct file:line, no code content leaked).
+  In CI: triggered `audit.yml` by hand the same day it was built; the
+  install step succeeded on a real runner and the check correctly
+  reported `PASS` on conformIT's own codebase, confirmed by reading the
+  published report, not just the green checkmark.
+- **The CodeQL template (`templates/.github/workflows/codeql.yml`) has
+  never been run.** Checked for YAML validity and correct, verified
+  action pins (`actions/checkout` v7.0.1, `codeql-action` v4's actual
+  commit); not tested against a real repository.
 - **`flashctrl/flashDK`'s cross-org caller PR is open, not merged or
   triggered yet** ([PR #11](https://github.com/flashctrl/flashDK/pull/11),
   now pinned to `v2`). The reporting repo
