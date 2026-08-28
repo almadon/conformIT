@@ -82,6 +82,55 @@ For a new project's `README.md`, copy
 [`templates/CLAUDE.md`](templates/CLAUDE.md) (decision #15). Copy both;
 `CLAUDE.md` is one line and doesn't need editing.
 
+## Reference or fork?
+
+Two ways to relate to this repo, and they're not a beginner/advanced
+progression, they're a real choice with a real cost on each side.
+Picking wrong doesn't break anything, but it does mean redoing setup
+work later, so it's worth reading both before choosing.
+
+**Reference conformIT directly** (`uses:
+almadon/conformIT/.github/workflows/reusable-audit.yml@v1` in your own
+workflow, per [`templates/.github/workflows/conform-audit.yml`](templates/.github/workflows/conform-audit.yml)):
+you get the standards as conformIT defines them, unmodified, and the
+audit tooling stays current with zero effort on your part beyond
+choosing when to bump the pinned tag.
+
+**Fork the repo**: you get your own copy of everything, `docs/`
+included, to keep, edit, or delete as you choose, starting from
+conformIT's own `docs/decisions.md` as the base record rather than a
+blank page.
+
+| | Reference | Fork |
+|---|---|---|
+| **You get** | conformIT's opinions, as published | Your own copy, editable from commit one |
+| **Upgrades** | Bump the pinned tag/SHA when you choose to | Manual: merge or rebase upstream changes yourself, or don't |
+| **Customizing a rule** | Not possible; the standard is what it is | Edit `docs/` and `scripts/` directly |
+| **Adding your own checks** | Not possible from the caller side | Edit `scripts/lib/audit-checks.sh` directly |
+| **Staying current costs** | One line (the pinned ref) to review per bump | Ongoing: every upstream change is a merge you have to evaluate |
+| **Divergence is** | Impossible by construction | Your responsibility to record, the way decision #1 records anjunatree's rejected slug format instead of pretending it didn't happen |
+| **Setup effort** | A three-line caller workflow, a reporting repo, a scoped PAT | The same, plus you now maintain a second copy of everything conformIT maintains |
+| **Right for** | "I want these standards applied to my repos" | "I want to start from these standards and make them mine" |
+
+**The failure mode on each side, stated plainly:**
+
+- Referencing and never bumping the pin is the same failure as any
+  unpinned-forever dependency: you stop getting fixes, silently, and
+  nothing tells you you've stopped. Review the pin periodically, the
+  same way you'd review any other pinned version.
+- Forking and never reconciling with upstream is the same failure
+  anjunatree's rejected commit format would have been if nobody wrote
+  down why it diverged (decision #1): a fork with unrecorded departures
+  from its base is indistinguishable, a year later, from a fork that
+  just drifted by accident. If you fork, keep `docs/decisions.md`'s own
+  discipline: when you diverge from something conformIT still does
+  upstream, write down what you chose and why, the same way conformIT
+  itself does for every departure from the repos it was derived from.
+
+Nothing stops switching later. Forking after months of referencing just
+means your first fork commit already has a real `docs/decisions.md` to
+build on rather than an empty one.
+
 ## Recurring audit
 
 A [scheduled workflow](.github/workflows/audit.yml) runs `conform.sh audit
