@@ -37,6 +37,9 @@ meant to be loaded into context, not read end to end.
 8. Match the surrounding code: naming, comment density, idiom.
 9. Correct errors plainly and move on. No performative apology, no
    re-litigating what was already right.
+10. Keep a session log at `chats/{tool}/YYYY-MM-DD-{project}-{topic}.md`
+    for significant work. Markdown, human-readable, never committed
+    (`chats/` is gitignored).
 
 ## This project
 

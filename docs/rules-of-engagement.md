@@ -134,3 +134,24 @@ at length, re-audit phrasing that was already accurate, or tally past
 mistakes.
 
 **Cost:** none. This one is free.
+
+## 10. Keep a session log
+
+A significant session gets a record at
+`chats/{tool}/YYYY-MM-DD-{project}-{shortened-topic}.md`: markdown, not
+a raw tool-native transcript, readable by a human or a different tool's
+next session without needing this one's context. See
+[documentation-standard.md](documentation-standard.md), "Session logs,"
+for the exact shape and what "significant" means in practice: work that
+changed a decision, shipped a real change, or would cost real time to
+re-derive if the next session started from nothing.
+
+Write it near the point where it's still cheap to write: at a natural
+break, or when a session ends, not reconstructed from memory in a later
+session once the detail is already gone. Never commit it; see
+[security-posture.md](security-posture.md) rule 1.
+
+**Cost:** the time to write a log entry instead of moving straight to
+the next thing. Cheaper than the alternative, which is the next
+session, possibly in a different tool, re-deriving what this one
+already worked out.

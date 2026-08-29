@@ -119,5 +119,41 @@ band, chroma floor, colour-blind separation, contrast against the surface.
 It records the passing results at the top of `src/themes.ts`. A colour
 change that skips the validator doesn't ship.
 
+## 11. Default to portable, narrow deliberately
+
+A project defaults to working across ecosystems, environments, and
+operating systems. Not because every project needs to run everywhere,
+but because narrowing later costs a rewrite and narrowing now is a
+choice, stated, not an assumption nobody decided on purpose. Don't
+hardcode something that only holds on one platform (a shell that only
+exists on one OS, an org name, a specific CI runner) unless the project
+is genuinely scoped to one deployment, in which case say so, in
+`docs/decisions.md`, the same as any other departure from a default.
+
+This is a different axis from rule 9's "single-homed until proven
+otherwise." Rule 9 is about not building operational scale (multi-node,
+high availability) before you need it. This rule is about not building
+in assumptions that make later portability cost a rewrite instead of a
+parameter. The two coexist: stay single-homed operationally, and still
+don't hardcode "us specifically" into code that would need to change
+even if a second node, or a second adopter, never shows up.
+
+Two examples already lived, not hypothetical: this project's own
+scripts and hooks target bash 3.2 (macOS system bash) rather than
+whatever the maintainer's own machine happens to run, at the cost of a
+few idioms (no associative arrays, no `mapfile`) and the benefit of
+every hook working identically on macOS and on a Linux CI runner with
+nobody noticing a difference. And `docs/decisions.md` #17's reusable
+workflow, built with every functional value as an input instead of
+hardcoded to one org, which turned a fork-portability request three
+sessions later into a five-line fix instead of a redesign; see that
+decision's own addendum for the payoff stated plainly.
+
+**Cost:** genuinely more thought at design time, for a payoff that
+might never be needed. Not every project should pay it. A one-off
+deployment script for one specific server is fine hardcoding that
+server; the departure is the point, not a lapse, as long as it's
+written down.
+
 **Cost:** writing the validator, and occasionally losing a colour you
 liked.

@@ -1,0 +1,6 @@
+# See templates/.gitignore for the baseline every project copies.
+# This repo has no build output or dependency directories of its own to
+# add beyond that baseline: it's prose and shell.
+
+# Session logs: docs/documentation-standard.md, "Session logs."
+chats/

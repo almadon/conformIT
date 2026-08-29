@@ -872,3 +872,103 @@ tool; an adopter wanting CodeQL results folded into the same report as
 the rest of the audit, which isn't possible without conformIT
 generically configuring per-language builds, itself a much larger
 undertaking than this decision took on.
+
+## 19. Portability is a design principle, cited against this project's own lived examples
+
+The maintainer proposed: modularity and portability across ecosystems,
+environments, and operating systems should be the default for a
+project, unless it's deliberately scoped to one platform.
+
+**Chosen:** [design-principles.md](design-principles.md) rule 11.
+
+**Why with this specific evidence:** the rule cites two things this
+project already did, not hypotheticals. Its own scripts and hooks
+target bash 3.2 rather than whatever the maintainer's machine runs,
+which is why every hook already works identically on macOS and a Linux
+CI runner. And decision #17's reusable workflow was built with every
+functional value as an input rather than hardcoded to one org, which is
+what turned the fork-portability question, asked three sessions later,
+into a five-line fix instead of a redesign. Citing your own project's
+paid-for discipline back at itself, at the moment someone asks whether
+it was worth it, is more convincing than a rule that only points at
+other repos.
+
+**Why it doesn't contradict rule 9** ("single-homed until proven
+otherwise"): they're different axes. Rule 9 says don't build
+operational scale before you need a second node. This rule says don't
+hardcode assumptions that make later portability cost a rewrite instead
+of a parameter. A project can and should be single-homed *and*
+portable: the reusable workflow never scaled to multiple orgs
+operationally, it just didn't assume there'd only ever be one.
+
+**What it cost:** nothing new; the cost was already paid and recorded
+in the decisions this rule cites. The rule itself costs future design
+time on every project that adopts it, stated in its own "Cost" line
+rather than left implicit.
+
+**What would justify revisiting:** if a future decision shows the
+opposite lesson, portability designed in up front that never paid off
+and cost real time against a deadline; nothing like that has happened
+here yet.
+
+## 20. Session logs (`chats/`), gitignored by default, checked by the audit
+
+The maintainer proposed a standard, prompted by a discussion elsewhere
+this session couldn't locate: AI coding tools should keep a continuous,
+human-readable log of significant sessions at
+`chats/{tool}/YYYY-MM-DD-{project}-{topic}.md`, gitignored by default.
+Asked directly to also wire it into the audit, the same as every other
+standard here.
+
+**Chosen:** the path shape and purpose recorded in
+[documentation-standard.md](documentation-standard.md) ("Session
+logs"), the behavioral rule in
+[rules-of-engagement.md](rules-of-engagement.md) rule 10 and both
+`AGENTS.md` files (root and template), the exclusion itself in
+`.gitignore` (both conformIT's own, newly created, and
+`templates/.gitignore`, also new), and a real audit check
+(`_conformit_scan_chats_tracked` in `scripts/lib/audit-checks.sh`).
+
+**Why markdown, and why a directory per tool**: a tool-native transcript
+format (JSONL, or whatever else) is optimized for that tool reading it
+back, not for a human or a different tool's next session doing so. A
+project using more than one coding tool gets one subdirectory per tool
+rather than a merged log, since two tools' own conventions for what a
+session even is don't necessarily line up.
+
+**Why the audit checks `git ls-files`, not just "does a `.gitignore`
+exist"**: a `.gitignore` rule added after content was already committed
+doesn't retroactively untrack it. Checking for the ignore rule's
+presence would pass a repo that has one and also has committed session
+logs from before it existed, which is exactly the case worth catching.
+`git ls-files chats/` asks git directly what's actually tracked,
+sidestepping the question of whether an ignore rule exists at all.
+
+**Why filenames are reported plainly here, unlike the other sensitive-
+content checks**: naming a path that's already tracked in the repo
+isn't a new disclosure the way echoing a discovered email address or a
+secret's value would be (decision #13, #16). The finding's whole point
+is telling you which files to `git rm --cached`, and redacting that
+would make the report less useful for no privacy gain, since the path
+is already visible in the repo's own history to anyone who looks.
+
+**What it cost:** conformIT didn't have a root `.gitignore` at all
+before this; the gap existed independently of this decision and was
+found while implementing it, not caused by it. This project's own
+existing content was checked and has never had a `chats/` directory, so
+nothing needed retroactive cleanup here.
+
+**What I could not verify:** where the original conversation proposing
+this happened. Searched exhaustively (eleven query variants across
+other Claude Code session transcripts, a full session listing, a check
+of conformIT's own git history for anything already merged) and found
+nothing. The tool used for that search only covers Claude Code
+sessions, not claude.ai's own conversation history, which may be where
+it actually happened. Implemented from the maintainer's restated
+description rather than a recovered record, and said so at the time
+rather than presenting the search as more conclusive than it was.
+
+**What would justify revisiting:** a second tool's own session-export
+convention turning out to be incompatible with landing inside
+`chats/{tool}/` as plain markdown, in which case the format
+requirement, not the directory shape, would need to bend.

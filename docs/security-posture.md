@@ -22,6 +22,12 @@ secret pasted once is a secret in an unknown number of places. If you catch
 yourself about to, the correct move is a new environment variable on the
 service, not a paste.
 
+The same reasoning is why a project's `chats/` session-log directory
+(documentation-standard.md, "Session logs") is gitignored by default,
+with no per-repo exception: a session log is a record of exactly the
+kind of content this rule warns about, and committing it turns a
+private mistake in one conversation into a permanent, shared one.
+
 ## Rule 2. Least privilege, per integration
 
 - One credential per integration, scoped as tightly as the service allows.

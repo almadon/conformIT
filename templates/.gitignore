@@ -1,0 +1,13 @@
+# conformIT baseline.
+#
+# This file is deliberately minimal: only what conformIT's own
+# standards require, never committed regardless of language or stack.
+# Everything else (build output, dependency directories, editor files)
+# is your project's own call; a language-specific starting point from
+# https://github.com/github/gitignore or gitignore.io is the right tool
+# for that, not this file.
+
+# Session logs: docs/documentation-standard.md, "Session logs."
+# Gitignored by default, no per-repo exception. See
+# docs/security-posture.md rule 1.
+chats/

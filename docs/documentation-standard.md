@@ -131,6 +131,49 @@ reconciler applies) on this basis: data, not prose.
 The test is simple. Does something read this file while running? Then it
 isn't documentation.
 
+`chats/` is the other kind of exclusion: not data the system reads, but
+a record no one but the project's own contributors should read, and
+never through git. See
+[security-posture.md](security-posture.md) rule 1 and
+[decisions.md](decisions.md) #20.
+
+## Session logs (`chats/`)
+
+A continuous, human-readable record of AI-assisted work on the project,
+one file per session:
+
+```
+chats/{tool}/YYYY-MM-DD-{project}-{shortened-topic}.md
+```
+
+`{tool}` is the coding tool (`claude`, `opencode`, `codex`, whichever
+was actually used; a project using more than one tool gets more than
+one subdirectory, not a merged one). `{project}` and `{shortened-topic}`
+are short, filesystem-safe slugs. Markdown, not the tool's own raw
+transcript format (JSONL, or whatever else): the point is something a
+human, or a different tool's next session, can open and read directly,
+not a re-export of what the tool already stores for itself elsewhere.
+
+**What it's for**: continuity across sessions and across tools. A new
+session, possibly in a different tool than the last one, can read what
+was actually discussed and decided without re-deriving it, the same
+argument [`AGENTS.md`](../AGENTS.md) makes for not re-inferring
+conventions every time. It's a supplement to `docs/decisions.md`, not a
+replacement: decisions.md is the curated, durable record of what was
+chosen and why; `chats/` is the fuller, unedited trace of how the
+conversation got there, useful when the summary in decisions.md isn't
+enough.
+
+**Never committed. Gitignored by default, in every project, no
+exceptions carved out per-repo.** A session transcript can contain
+anything that came up in conversation: pasted output, a stray secret
+someone meant to redact and didn't, a private URL, exactly the class of
+content [security-posture.md](security-posture.md) rule 1 already warns
+against letting reach anywhere it shouldn't. The audit checks that a
+`chats/` directory, if one exists, is actually excluded, not just that
+a `.gitignore` file happens to exist somewhere in the repo; see
+[decisions.md](decisions.md) #20.
+
 ## Conventions that keep documents honest
 
 ### `VERIFY` for unchecked claims

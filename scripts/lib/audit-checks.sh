@@ -290,6 +290,25 @@ PY
   return 0
 }
 
+# --- session-log hygiene ------------------------------------------------------
+#
+# documentation-standard.md's "Session logs": a repo's chats/ directory,
+# if it has one, must never actually be tracked by git, not just have a
+# .gitignore file that happens to exist somewhere. `git ls-files` reads
+# what's genuinely tracked, the only thing that actually matters; a
+# .gitignore rule that was added after content was already committed
+# doesn't retroactively untrack it, so checking the ignore file's
+# presence alone would miss exactly the case worth catching. Filenames
+# are reported plainly, unlike the sensitive-content checks: naming a
+# tracked path isn't a new disclosure the way echoing an email address
+# or a secret's location would be, and knowing which files to fix is
+# the point of the finding.
+_conformit_scan_chats_tracked() {
+  local repo="$1"
+  [ -d "$repo/chats" ] || return 0
+  ( cd "$repo" && git ls-files chats/ 2>/dev/null )
+}
+
 conformit_audit_repo() {
   # conformit_audit_repo <repo-path> <label> <rows-file>
   # Prints a markdown "details" section to stdout. Appends one summary row
@@ -451,6 +470,23 @@ conformit_audit_repo() {
     fi
   else
     _conformit_note WARN "semgrep not on PATH: SAST check did not run"
+  fi
+
+  # --- session-log hygiene ---------------------------------------------------
+  # No note at all if chats/ doesn't exist: the convention is opt-in, and
+  # absence isn't a violation the way an unexempted missing conditional
+  # file is. Only says something once there's something to say.
+  if [ -d "$REPO/chats" ]; then
+    local chats_tracked
+    chats_tracked="$(_conformit_scan_chats_tracked "$REPO" | sed '/^$/d')"
+    if [ -z "$chats_tracked" ]; then
+      _conformit_note PASS "chats/ present and correctly untracked"
+    else
+      local count sample
+      count=$(printf '%s\n' "$chats_tracked" | grep -c .)
+      sample=$(printf '%s\n' "$chats_tracked" | head -3 | paste -sd '; ' -)
+      _conformit_note FAIL "$count file(s) committed under chats/, which should be gitignored: $sample"
+    fi
   fi
 
   # --- tooling presence, informational -------------------------------------

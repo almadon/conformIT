@@ -5,7 +5,22 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-08-28. Ninth session: made the audit portable
+**Last updated:** 2026-08-28. Tenth session: added a `chats/` session-log
+convention (decision #20) and a modularity/portability design principle
+(decision #19, `design-principles.md` rule 11), both maintainer-
+proposed. Gave conformIT its own root `.gitignore` for the first time
+in the process (a real, independent gap, found while implementing this,
+not caused by it). The audit checks `chats/` hygiene for real via
+`git ls-files`, not just whether a `.gitignore` file happens to exist;
+tested against all three states (absent, present-and-ignored,
+present-and-committed) before trusting it. One thing this session
+couldn't do: locate the original conversation that proposed the `chats/`
+convention. Searched exhaustively across other Claude Code sessions and
+found nothing; implemented from the maintainer's restated description
+instead, and said so in decisions.md #20 rather than presenting the
+search as more conclusive than it was.
+
+Ninth session (previous day): made the audit portable
 (`.github/workflows/reusable-audit.yml`, `on: workflow_call`) so any
 org can adopt it without a GitHub App, tested against a genuine cross-
 org caller (`flashctrl/flashDK`, PR pending review), plus a fork-
