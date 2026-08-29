@@ -968,6 +968,13 @@ it actually happened. Implemented from the maintainer's restated
 description rather than a recovered record, and said so at the time
 rather than presenting the search as more conclusive than it was.
 
+**Verified in real CI the same day, tag `v4`**: triggered the workflow
+by hand against conformIT's own repo, which has no `chats/` directory.
+The report correctly carried zero mentions of it, confirming the
+"silent when not applicable" design holds in a real run and not just in
+the local synthetic-fixture tests (absent, present-and-ignored,
+present-and-committed) run earlier the same session.
+
 **What would justify revisiting:** a second tool's own session-export
 convention turning out to be incompatible with landing inside
 `chats/{tool}/` as plain markdown, in which case the format
