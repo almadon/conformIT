@@ -3,7 +3,8 @@
 #
 # Usage:
 #   scripts/conform.sh audit <path>          audit a local checkout
-#   scripts/conform.sh audit <owner/repo>    clone (public, read-only) and audit
+#   scripts/conform.sh audit <target>        clone and audit; <target> is owner/repo, host/owner/repo,
+#                                             a clone URL, or a path (see conformit_clone below)
 #   scripts/conform.sh audit --all [--detail-dir <dir>] [--targets-file <path>]
 #                                             audit every repo in a targets file
 #   scripts/conform.sh init                  not implemented yet, see docs/STATE.md
@@ -43,6 +44,40 @@ ROOT="$(cd "$HERE/.." && pwd)"
 usage() {
   sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
 }
+
+# Turn a target spec into a clone. Four forms, because the targets are not
+# all public GitHub repos:
+#
+#   owner/repo                       GitHub over https (the default)
+#   host.example/owner/repo          another host over https; first segment has a dot
+#   ssh://git@host/x/y, git@host:x/y a full clone URL, used exactly as written
+#   /abs/path, ./rel, ~/path         a local checkout, cloned so that, like the
+#                                    others, only committed content is audited
+#
+# The last two are how private or internal repos are audited without this
+# public repo ever naming them: they go in a gitignored
+# registry/targets.local.yaml, run locally with your own credentials. See
+# docs/decisions.md #23.
+conformit_clone() {
+  local spec="$1" dest="$2"
+  case "$spec" in
+    *://*|*@*:*)
+      git clone --quiet --depth 50 "$spec" "$dest" 2>/dev/null ;;
+    /*|./*|../*|\~/*)
+      git clone --quiet --no-hardlinks "${spec/#\~/$HOME}" "$dest" 2>/dev/null ;;
+    */*/*)
+      case "${spec%%/*}" in
+        *.*) git clone --quiet --depth 50 "https://${spec}.git" "$dest" 2>/dev/null ;;
+        *) return 2 ;;
+      esac ;;
+    */*)
+      git clone --quiet --depth 50 "https://github.com/${spec}.git" "$dest" 2>/dev/null ;;
+    *) return 2 ;;
+  esac
+}
+
+# A filename-safe name for a spec: owner/repo -> owner-repo, as before.
+conformit_slug() { printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '-'; }
 
 cmd_audit_all() {
   local detail_dir=""
@@ -101,7 +136,7 @@ cmd_audit_all() {
   echo
   echo "Run: $(date -u +%Y-%m-%dT%H:%MZ)"
   echo
-  echo "Read-only. Public repos declared in \`$targets_file\`,"
+  echo "Read-only. Repos declared in \`$targets_file\`,"
   echo "cloned fresh for this run. Nothing is written back to any target."
   if [ -n "$detail_dir" ]; then
     echo
@@ -116,26 +151,26 @@ cmd_audit_all() {
   local repo clone_dir slug detail_target
   while IFS= read -r repo; do
     [ -z "$repo" ] && continue
-    clone_dir="$workdir/$(printf '%s' "$repo" | tr '/' '_')"
-    if ! git clone --quiet --depth 50 "https://github.com/${repo}.git" "$clone_dir" 2>/dev/null; then
+    clone_dir="$workdir/$(conformit_slug "$repo")"
+    if ! conformit_clone "$repo" "$clone_dir"; then
       echo "| $repo | ❌ | n/a | n/a | clone failed | n/a |" >> "$rows_file"
       if [ -n "$detail_dir" ]; then
-        slug="$(printf '%s' "$repo" | tr '/' '-')"
+        slug="$(conformit_slug "$repo")"
         {
           echo "### $repo"
           echo
-          echo "- ❌ could not clone: repository missing, renamed, or not public"
+          echo "- ❌ could not clone: missing, renamed, or no access from here"
         } > "$detail_dir/$slug.md"
       else
         echo "### $repo"
         echo
-        echo "- ❌ could not clone: repository missing, renamed, or not public"
+        echo "- ❌ could not clone: missing, renamed, or no access from here"
         echo
       fi
       continue
     fi
     if [ -n "$detail_dir" ]; then
-      slug="$(printf '%s' "$repo" | tr '/' '-')"
+      slug="$(conformit_slug "$repo")"
       detail_target="$detail_dir/$slug.md"
       conformit_audit_repo "$clone_dir" "$repo" "$rows_file" > "$detail_target"
     else
@@ -183,16 +218,16 @@ cmd_audit_one() {
     label="$arg"
   else
     case "$arg" in
-      */*)
+      */*|*@*:*)
         repo_path="$workdir/clone"
         label="$arg"
-        if ! git clone --quiet --depth 50 "https://github.com/${arg}.git" "$repo_path" 2>/dev/null; then
-          echo "conform.sh: could not clone https://github.com/${arg}.git (missing, renamed, or not public)" >&2
+        if ! conformit_clone "$arg" "$repo_path"; then
+          echo "conform.sh: could not clone '$arg' (missing, renamed, or no access from here)" >&2
           exit 1
         fi
         ;;
       *)
-        echo "conform.sh: '$arg' is not a local directory or an owner/repo shorthand" >&2
+        echo "conform.sh: '$arg' is not a local directory, an owner/repo, or a clone URL" >&2
         exit 1
         ;;
     esac

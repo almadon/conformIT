@@ -10,6 +10,9 @@
 # Portable to bash 3.2 (macOS system bash), matching every other script
 # and hook in this repo.
 
+# shellcheck source=dep-checks.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/dep-checks.sh"
+
 CONFORMIT_PASS=0
 CONFORMIT_WARN=0
 CONFORMIT_FAIL=0
@@ -34,6 +37,23 @@ _conformit_symbol() {
     FAIL) printf '%s' "❌" ;;
     CRIT) printf '%s' "🚨" ;;
   esac
+}
+
+# Printed by a scanner wrapper when the tool itself failed (crashed, could
+# not fetch its rules, or its report could not be read), so the caller can
+# tell "ran and found nothing" from "did not run". Without it, an empty
+# result reads as clean: a crashing scanner used to produce a PASS.
+CONFORMIT_TOOL_FAILED="__CONFORMIT_TOOL_FAILED__"
+
+_conformit_failed() { printf '%s' "$1" | grep -qx "$CONFORMIT_TOOL_FAILED"; }
+
+# macOS ships no `timeout`. Use GNU's as `timeout` or `gtimeout` if present,
+# otherwise run unbounded rather than failing the check outright.
+_conformit_timeout() {
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then timeout "$secs" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then gtimeout "$secs" "$@"
+  else "$@"; fi
 }
 
 # Mirrors templates/.githooks/pre-commit's exclusions (fenced code, inline
@@ -135,16 +155,18 @@ _conformit_scan_secrets_gitleaks() {
   if ! ( cd "$repo" && gitleaks dir . --report-format json --report-path "$report" \
     --exit-code 0 --no-banner >/dev/null 2>&1 ); then
     rm -f "$report"
+    echo "$CONFORMIT_TOOL_FAILED"
     return 1
   fi
   if command -v python3 >/dev/null 2>&1; then
-    python3 - "$report" "$repo" <<'PY'
+    python3 - "$report" "$repo" "$CONFORMIT_TOOL_FAILED" <<'PY'
 import json, sys
-report_path, repo = sys.argv[1], sys.argv[2]
+report_path, repo, failed = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
     with open(report_path) as f:
         data = json.load(f)
 except Exception:
+    print(failed)
     sys.exit(0)
 for item in data or []:
     f = item.get("File", "?")
@@ -152,6 +174,8 @@ for item in data or []:
     rule = item.get("RuleID", "unknown-rule")
     print(f"{f}:{line}:{rule}")
 PY
+  else
+    echo "$CONFORMIT_TOOL_FAILED"
   fi
   rm -f "$report"
   return 0
@@ -264,20 +288,22 @@ _conformit_scan_sast() {
   local repo="$1"
   local report
   report="$(mktemp)"
-  if ! ( cd "$repo" && timeout 300 semgrep \
+  if ! ( cd "$repo" && _conformit_timeout 300 semgrep \
     --config "p/security-audit" --config "p/owasp-top-ten" \
     --json --output "$report" --quiet . >/dev/null 2>&1 ); then
     rm -f "$report"
+    echo "$CONFORMIT_TOOL_FAILED"
     return 1
   fi
   if command -v python3 >/dev/null 2>&1; then
-    python3 - "$report" <<'PY'
+    python3 - "$report" "$CONFORMIT_TOOL_FAILED" <<'PY'
 import json, sys
-report_path = sys.argv[1]
+report_path, failed = sys.argv[1], sys.argv[2]
 try:
     with open(report_path) as f:
         data = json.load(f)
 except Exception:
+    print(failed)
     sys.exit(0)
 for item in data.get("results", []) or []:
     path = item.get("path", "?")
@@ -285,6 +311,8 @@ for item in data.get("results", []) or []:
     rule = item.get("check_id", "unknown-rule")
     print(f"{path}:{line}:{rule}")
 PY
+  else
+    echo "$CONFORMIT_TOOL_FAILED"
   fi
   rm -f "$report"
   return 0
@@ -408,6 +436,12 @@ conformit_audit_repo() {
   if command -v gitleaks >/dev/null 2>&1; then
     secret_hits="$(_conformit_scan_secrets_gitleaks "$REPO")"
     engine="gitleaks"
+    if _conformit_failed "$secret_hits"; then
+      # gitleaks is on PATH but did not produce a usable report: fall back,
+      # and say so, rather than reading an empty result as clean.
+      secret_hits="$(_conformit_scan_secrets_heuristic "$REPO")"
+      engine="heuristic fallback, gitleaks failed to run: reduced coverage"
+    fi
   else
     secret_hits="$(_conformit_scan_secrets_heuristic "$REPO")"
     engine="heuristic fallback, gitleaks not on PATH: reduced coverage"
@@ -460,7 +494,9 @@ conformit_audit_repo() {
   if command -v semgrep >/dev/null 2>&1; then
     local sast_hits
     sast_hits="$(_conformit_scan_sast "$REPO" | sed '/^$/d')"
-    if [ -z "$sast_hits" ]; then
+    if _conformit_failed "$sast_hits"; then
+      _conformit_note WARN "semgrep failed to run (crashed, timed out, or could not fetch its rules): SAST check did not complete"
+    elif [ -z "$sast_hits" ]; then
       _conformit_note PASS "no findings from semgrep's security-audit/owasp-top-ten rules"
     else
       local count sample
@@ -471,6 +507,12 @@ conformit_audit_repo() {
   else
     _conformit_note WARN "semgrep not on PATH: SAST check did not run"
   fi
+
+  # --- dependencies and supply chain -----------------------------------------
+  # Known vulnerabilities, lockfile hygiene, outdated and deprecated
+  # packages, outdated Actions refs, end-of-life images and runtimes. See
+  # scripts/lib/dep-checks.sh and docs/decisions.md #23.
+  _conformit_dep_checks "$REPO"
 
   # --- session-log hygiene ---------------------------------------------------
   # No note at all if chats/ doesn't exist: the convention is opt-in, and

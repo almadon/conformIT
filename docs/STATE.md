@@ -5,7 +5,35 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-10-07 (later). Thirteenth session: conformIT is now
+**Last updated:** 2026-10-26. Fifteenth session: conformIT moved to
+`almadon/conformIT` for good (decision #25). Every live reference was
+repointed; the history in earlier decisions was not rewritten. Found that the
+weekly audit has failed since 10-05; the 10-19 log shows a 403 at the
+publish step because `main` still pointed at `placidIT/conformIT-reporting`; fixed by this
+change, but the token still needs recreating by the maintainer (checklist in
+#25). Also drafted, uncommitted until now: principle 12 (known-good
+fallback) and the `docs/ownership.md` standard, from the Consigliere session
+(decision #24).
+
+Fourteenth session (2026-10-12): added dependency and
+supply-chain checks (decision #23), at the request of another Claude
+session relaying the maintainer after a manual sweep: known
+vulnerabilities (one `osv-scanner` binary covering npm, PyPI and Cargo),
+lockfile hygiene, outdated direct dependencies, deprecated packages and
+Action runtimes, outdated or floating Actions refs on GitHub and Forgejo,
+and end-of-life base images. Built and tested locally against fixtures and
+five real repos; **not yet run in CI**, because nothing here is pushed.
+Two things from the request were not done as asked. The private Forgejo
+repos are not in `registry/targets.yaml`, since that file is public and
+naming a private host there breaks `security-posture.md` rule 9; they go in
+the gitignored `registry/targets.local.yaml` instead (template:
+`registry/targets.local.example.yaml`), run locally. And I fixed a bug in
+my own earlier work found while writing the sibling code: a crashing
+gitleaks or semgrep used to be reported as a PASS. Also found the data
+volume full mid-session; roughly 700 MiB of that was my own scratch clones
+and venvs, since removed.
+
+Thirteenth session (2026-10-07, later): conformIT is now
 `placidIT/conformIT`; `SerenIT-org` was renamed and Consigliere went back to
 `almadon/Consigliere` as a separate project (decision #22). Every live
 reference, the local remote and the flashDK fix were repointed, after

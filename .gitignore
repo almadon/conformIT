@@ -4,3 +4,11 @@
 
 # Session logs: docs/documentation-standard.md, "Session logs."
 chats/
+
+# Private and internal audit targets: never committed, because naming them in
+# a public repository is what docs/security-posture.md rule 9 warns against.
+# registry/targets.local.example.yaml is the committed template.
+registry/*.local.yaml
+
+# Python bytecode (scripts/lib/py/ is Python now)
+__pycache__/

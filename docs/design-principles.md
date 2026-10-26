@@ -157,3 +157,49 @@ written down.
 
 **Cost:** writing the validator, and occasionally losing a colour you
 liked.
+
+## 12. An automated change to a running service can undo itself
+
+Any automated change to a running service's configuration keeps the
+previous known-good version, and if the new one does not come up healthy,
+restores the old one without a person.
+
+The order is fixed:
+
+1. **Validate** with the tool's own check (`nginx -t`,
+   `otelcol-contrib validate`), before anything touches the running copy.
+2. **Keep a copy** of what is running now.
+3. **Apply.**
+4. **Health gate.** The service stays up for a stated time, its restart
+   counter does not rise, and a readiness endpoint answers if it has one.
+5. **On failure, restore** the copy, restart, mark the revision failed, and
+   do not retry the same revision in a loop.
+
+Four details decide whether this works in practice:
+
+- **Define a crash loop** for the service: more than X restarts within Y
+  seconds, systemd's "start request repeated too quickly", a container stuck
+  restarting. The fallback has to clear that state itself (for systemd,
+  `systemctl reset-failed`), or it cannot restart anything. This was
+  learned the hard way on a Proxmox host running `otelcol-contrib` on
+  2026-10-22, as reported by the Consigliere session; it is relayed, not
+  something this repository could check.
+- **The copy lives where the next apply cannot overwrite it** before the
+  health gate passes. Keep two generations.
+- **The failure is recorded where an operator looks**: the journal and a
+  status command at minimum. If a notification channel exists, use it. Having
+  no channel is itself a recorded decision.
+- **Exceptions are recorded.** A service that migrates its data on start is
+  not automatically rolled back, because the old config may not be able to
+  read the migrated data. Say so in `docs/decisions.md`.
+
+**Cost:** more machinery around every apply, and a rollback can reinstate an
+older config that a security fix had replaced, so a restored revision should
+be flagged for follow-up, not forgotten. **Rejected:** fix-forward only,
+which needs someone awake and correct under pressure; manual-only rollback,
+for the same reason. **Revisit if** the health gate causes flapping, which
+means the gate is too tight or the service legitimately restarts.
+
+Related: principle 2 is about detecting drift between declared and actual
+state. This one is about what happens when applying the declared state
+makes things worse.

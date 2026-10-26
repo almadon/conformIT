@@ -7,13 +7,13 @@
 # repo, and publishes the full findings to a private reporting repo you
 # create and control. conformIT never sees or holds your credential; it
 # only runs inside your own job, for the duration of your own run. See
-# https://github.com/placidIT/conformIT/blob/main/docs/decisions.md #17.
+# https://github.com/almadon/conformIT/blob/main/docs/decisions.md #17.
 #
 # Two ways to use this, both fine:
-#   - Reference placidIT's copy directly (the `uses:` line below, as
+#   - Reference almadon's copy directly (the `uses:` line below, as
 #     written). You get conformIT's standards as-is; upgrading means
 #     bumping the pinned tag when you choose to.
-#   - Fork placidIT/conformIT first, then point `uses:` at your own
+#   - Fork almadon/conformIT first, then point `uses:` at your own
 #     fork instead (`<your-org>/conformIT/...@<your-tag>`). Do this if
 #     you want to adapt the standards themselves, not just run the
 #     audit against your own repos: you get your own copy of docs/ to
@@ -24,7 +24,7 @@
 #   1. A private reporting repo (this workflow never creates one). Make it
 #      from the public template:
 #      gh repo create <owner>/<name> --private \
-#        --template placidIT/conformIT-reporting-template
+#        --template almadon/conformIT-reporting-template
 #   2. A fine-grained GitHub PAT scoped to ONLY that repo, with
 #      `Contents: Read and write` and nothing else. Least privilege:
 #      this token should not be able to touch anything but the one
@@ -50,7 +50,7 @@ jobs:
     # applies to conformIT's own dependencies. Re-verify and re-pin
     # deliberately when you want the latest version, don't switch to
     # @main to avoid doing that.
-    uses: placidIT/conformIT/.github/workflows/reusable-audit.yml@v4
+    uses: almadon/conformIT/.github/workflows/reusable-audit.yml@v4
     with:
       # One `owner/repo` per line; list more than one to audit several
       # repos in the same run. Leaving `targets` unset does NOT default

@@ -1158,3 +1158,265 @@ equivalents, because nothing now points at them.
 **What would justify revisiting:** another move, in which case the cost
 is again every pinned `uses:` line, and the inventory becomes worth
 building instead of describing.
+
+## 23. Dependency and supply-chain checks, and a registry that does not name private repos
+
+Another Claude session, relaying the maintainer, reported that a manual
+sweep had found gaps conformIT should cover so it is not done by hand
+again: vulnerable and outdated npm, Python and Rust dependencies,
+outdated GitHub and Forgejo Actions references, stale Docker base images,
+and deprecation warnings. It also listed the repositories to audit,
+including private Forgejo repos, and four bugfix forks that should not be
+audited. The versions it quoted as latest (checkout v7, setup-python v7,
+setup-node v7, docker login v4, metadata v6, build-push v7) were checked
+against the registries and match.
+
+**Chosen, the checks** (`scripts/lib/dep-checks.sh` and
+`scripts/lib/py/depcheck.py`):
+
+- **Known vulnerabilities** for npm, PyPI and crates.io, plus the other
+  ecosystems `osv-scanner` reads, from one pinned, checksum-verified binary
+  rather than `npm audit`, `pip-audit` and `cargo-audit`. Tested against a
+  fixture of deliberately old dependencies before trusting it: it found
+  known-bad versions in all three ecosystems and resolved transitive
+  Python dependencies from a plain `requirements.txt`. It collapses
+  aliases of one advisory into a group, so the counts are distinct
+  advisories, not the larger raw number a naive listing gives.
+- **Lockfile hygiene**: a manifest with no lockfile, or unpinned
+  requirements, is reported on its own. This is not a nicety. The same
+  fixture held a `pyproject.toml` with no lockfile, and `osv-scanner`
+  skipped it silently, so without this check an unlocked project would
+  look clean.
+- **Outdated direct dependencies** (npm via `package-lock.json`, PyPI via
+  pinned requirements, crates.io via `Cargo.lock`), reported as
+  *breaking-version behind*: a new major, or a new minor for `0.x`
+  crates. Being a patch behind is counted but not alarming.
+- **Deprecated npm packages** recorded in lockfiles, and **Actions that
+  run on a deprecated runtime** (node12/16/20, a list kept as a named
+  constant with the date it was checked).
+- **Actions references** in `.github/`, `.forgejo/` and `.gitea/`
+  workflows: a major version behind, floating on a branch, or SHA-pinned
+  with no `# vX` comment so staleness cannot be judged. Latest versions are
+  looked up on the host the action actually comes from, so Forgejo
+  workflows resolve against `code.forgejo.org`.
+- **End-of-life base images and runtimes** from Dockerfiles, compose
+  files and `python-version`/`node-version` keys, using endoflife.date,
+  plus images that float on `:latest` or no tag.
+
+**Severity.** Known vulnerabilities and anything past end of life are FAIL.
+Being behind, floating refs, deprecated runtimes and incomplete lookups are
+WARN. None of it is CRIT: that tier stays reserved for a leaked secret, per
+decision #13, because a vulnerable version has no "rotate now" response.
+
+**Why `osv-scanner` and not the three native tools.** Recorded in
+`docs/credits.md`: one verified binary against three toolchains, formats
+and advisory databases. The native tools are deeper inside one ecosystem
+(`cargo-deny` also checks licences and bans); that depth is the cost, and
+it is the reason to revisit if OSV's coverage of one ecosystem turns out
+thin.
+
+**The registry, and a rule 9 problem in the request.** The request asked
+for the private Forgejo repos to be added to `registry/targets.yaml`. That
+file is committed to a public repository and read by a workflow whose job
+summary is public, and the Forgejo host answers `Only signed in user is
+allowed to call APIs` to anonymous requests. Writing its hostname and its
+private repo names into this repo would publish exactly what
+[security-posture.md](security-posture.md) rule 9 says not to, and CI could
+not reach them anyway. So the public registry holds public repos only
+(five were added: the fleet template, `anjunatree`, and three Home
+Assistant integrations), and private or internal repos go in
+`registry/targets.local.yaml`, which is gitignored, with a committed
+`registry/targets.local.example.yaml` as the template. Six GitHub repos
+found in the maintainer's local checkouts are private, so they belong there
+too. To make that
+usable, a target can now be `owner/repo`, `host.example/owner/repo`, a full
+clone URL (ssh included), or a path to a local checkout, which is cloned
+so only committed content is audited. The four bugfix forks are not
+listed, and the policy is written in the registry header so a later "add
+every `ha-*` repo" does not quietly bring them back.
+
+**A bug in earlier work, found by writing the sibling code.** The gitleaks
+and semgrep wrappers returned nothing when the tool crashed, and their
+callers read "nothing" as "clean", so a crashed scanner reported **PASS**.
+Reproduced with a fake binary that always exits 2, then fixed: a tool
+failure is now an explicit marker, gitleaks falls back to the heuristic
+scan and says so, and semgrep reports a WARN that the check did not
+complete. The same pass added a `timeout` shim, because stock macOS has no
+`timeout` and the old call would have failed there and hit the same path.
+Decision #18 and #13's statements that those checks "report absence as WARN
+rather than PASS" were true for absence and false for failure.
+
+**What it cost.** Each audited repo now takes noticeably longer, because
+the outdated, Actions and end-of-life checks make live requests; a whole
+registry run is a few minutes rather than one. Several third-party
+services are now in the path (the npm, PyPI and crates.io registries,
+endoflife.date, each Actions host, `api.osv.dev`), and a lookup that fails
+degrades to "result incomplete" rather than a pass. `depcheck.py` is
+Python, so `python3` is now a real dependency of these checks (Python
+3.11 or newer for Cargo, which is reported when missing). The Actions
+lookup uses the calling repository's own read-only job token, only to reach
+the authenticated rate limit.
+
+**What it does not cover, said plainly.**
+
+- Outdated and deprecated are computed for direct dependencies only, from
+  npm `package-lock.json`, pinned PyPI requirements and `Cargo.lock`.
+  Yarn, pnpm, Poetry, uv and the other ecosystems get the vulnerability
+  check but not "outdated". Lookups are capped at 100 per ecosystem per
+  repo.
+- End of life covers official images for a fixed list of products, not
+  arbitrary images, and does not judge how old a pinned patch version is.
+- A repo's `pyproject.toml` or unpinned requirements cannot be checked for
+  vulnerabilities without resolving them, which would mean executing the
+  target's build tooling. Reported as a gap instead.
+- Only the current tree is read, not history, the same limit as decision
+  #13.
+
+**Verified**: the helper against fixtures for each check, including old
+Actions refs on both GitHub and Forgejo, a floating ref, a SHA pin with and
+without a version comment, an EOL image and runtime, and floating images;
+`osv-scanner` against known-vulnerable lockfiles; the whole audit end to
+end through `conform.sh`; all the target forms; and the new checks against
+five real repositories from the list, which produced real findings in
+every one that has dependencies (in aggregate: known vulnerabilities in
+three of the five, outdated or deprecated Actions in three, and a floating
+ref in one, after `dtolnay/rust-toolchain` was exempted as a deliberate
+selector). The specific packages are deliberately not recorded here;
+they are in the run output given to the maintainer.
+
+**Not verified**: a real CI run (nothing is pushed), including the
+`linux_amd64` `osv-scanner` checksum step, which has only been read from
+the published sums, not executed; any run against the private Forgejo
+host, which has not been attempted and needs your credentials; and the
+deprecated-runtime list beyond what GitHub had announced when it was
+written.
+
+**What would justify revisiting**: OSV missing advisories a native tool
+catches; the run time becoming a reason to skip the checks; or a second
+person wanting the private-target file shared, which would need a better
+home than one gitignored file.
+
+### Addendum to #22 (2026-10-12): Consigliere's relationship changed in the retelling, its location did not
+
+Decision #22 recorded, from a relayed message, that conformIT and the
+placidIT suite are "different projects with different goals" from
+Consigliere. Five days later the same relay said the opposite: Consigliere
+and conformIT are both part of the placidIT suite, related but separate.
+Neither statement can be checked from this repository, and the first is
+withdrawn here as unreliable rather than corrected to the second.
+
+What can be checked is where the repository is. On 2026-10-12 GitHub
+reports its canonical name as `almadon/Consigliere`. The `placidIT`
+organization contains only `conformIT`, `conformIT-reporting` and
+`conformIT-reporting-template`. `placidIT/Consigliere` and
+`SerenIT-org/Consigliere` both answer, but only as redirects to the
+`almadon` repository. So `registry/targets.yaml` keeps
+`almadon/Consigliere`: a target should name the real owner, not a name that
+works until someone looks closely. If Consigliere is meant to move into
+`placidIT`, that is a transfer the maintainer makes, after which the
+registry entry changes to match. A clone would survive the old name through
+the redirect, but `uses:` references would not (decision #21's addendum), so
+this is worth getting right when it happens rather than discovering later.
+
+## 24. Two rules proposed by the Consigliere session: known-good fallback and stated ownership
+
+The Consigliere session, relaying the maintainer's project, proposed two
+additions to the standard, and the maintainer approved drafting them.
+Drafted, for review, not yet adopted by any audit.
+
+**Chosen.** [design-principles.md](design-principles.md) #12: an automated
+change to a running service validates, keeps a copy, applies, passes a
+health gate, and restores itself on failure, with crash loops defined and
+cleared by the fallback itself. [documentation-standard.md](documentation-standard.md)
+gains a conditional `docs/ownership.md` (a table of what each managed thing
+is owned by, how, and why) and a module-README contract block, with a
+template at `templates/docs/ownership.md`.
+
+**Rejected.** Fix-forward only and manual-only rollback, for principle 12.
+Leaving ownership implicit in the code, for the second.
+
+**Cost.** Principle 12 adds machinery around every apply, and a rollback can
+reinstate an older config that a security fix had replaced. The ownership
+file is another document to keep honest.
+
+**Not done, on purpose: audit checks.** The proposal suggested checking for
+a "Rollback" section and for `docs/ownership.md`. Neither is implemented.
+A heading match is trivially satisfied by an empty section, and the audit
+has no reliable way to tell that a project "has running components". Adding
+a check that warns on every existing project before the rules have been used
+once would be noise. Revisit once a project has written both and shown what
+a meaningful check would look for.
+
+**Provenance, said plainly.** The motivating incident (an `otelcol-contrib`
+crash loop on a Proxmox host, 2026-10-22) is as reported by the other
+session. The Consigliere session also stated that it only partly conforms to
+principle 12 (validate-before-replace exists; automatic restore after a
+crash loop does not) and that role READMEs are not yet on the common
+contract. conformIT's audit has not been run on Consigliere, so neither
+claim is checked here, and nothing records Consigliere as conforming.
+
+**What would justify revisiting.** The health gate causing flapping in
+practice; the ownership table going stale in the first project that uses it;
+or an audit check that can be written without becoming a keyword match.
+
+## 25. Moved for good, to almadon
+
+conformIT moved from `placidIT` to `almadon` (2026-10-26, relayed from the
+maintainer by the coordinating session and checked against GitHub before
+acting). Decisions #21 and #22 stay as written: they record the two
+earlier moves, and this one does not rewrite them.
+
+**Chosen.** Every live reference now names `almadon`: `README.md`,
+`registry/targets.yaml` (`almadon/conformIT`, with `almadon/Consigliere`
+unchanged), `.github/workflows/audit.yml` (`reporting_repo:
+almadon/conformIT-reporting`), the `reusable-audit.yml` comments, the
+`uses:` and `--template` lines in `templates/.github/workflows/conform-audit.yml`,
+and the user-agent string in `scripts/lib/py/depcheck.py`. The local
+directory is `~/Workspaces/Apps/almadon/conformIT` and the `GitHub` remote
+is `git@github.com:almadon/conformIT.git`.
+
+**Checked on GitHub, not assumed.** `almadon/conformIT` and
+`almadon/conformIT-reporting-template` are public and carry `v1` to `v4`.
+`placidIT/conformIT` redirects to the new home. `almadon/conformIT-reporting`
+is private and holds the real report history through 2026-09-28.
+`placidIT/conformIT-reporting` was not transferred: it is a fresh copy with
+one report, and because the almadon one already existed it is redundant.
+That repo is the maintainer's to delete; this decision does not.
+
+**What the move was already costing.** The scheduled audit failed on
+2026-10-05, 10-12 and 10-19. For 10-19 the log was read: the failing step
+is "Publish full detail to the private reporting repo", with `403 Write
+access to repository not granted` against `placidIT/conformIT-reporting`,
+which the workflow on `main` still named. The audit itself completed; only
+the publish step failed. The 10-12 and 10-05 logs were not read, and 10-05
+predates the SerenIT move, so its cause may differ. Nothing reached `almadon/conformIT-reporting` after
+2026-09-28, so there is a gap in the report history.
+
+**Checklist, with who does what and what was verified.**
+
+- [ ] **Token, maintainer.** Recreate `CONFORMIT_REPORTING_TOKEN` as a
+  fine-grained PAT with resource owner `almadon`, scoped to
+  `almadon/conformIT-reporting` only, `Contents: Read and write`. Save it
+  as an Actions secret on `almadon/conformIT` and on each caller repo. A
+  secret named `CONFORMIT_REPORTING_TOKEN` already exists on
+  `almadon/conformIT` (last updated 2026-08-27); whether its scope is right
+  for the almadon repo was not verified and cannot be from here. Replace it
+  if the next run returns 403.
+- [x] **Schedule.** Both workflows report `active` and the schedule was
+  firing as late as 2026-10-19, so GitHub had not paused it. A later pause
+  for inactivity is possible after 60 days without repository activity,
+  which this commit ends.
+- [ ] **Callers, each repo's owner.** `uses: almadon/conformIT/...@v4`.
+  Old `placidIT/` references keep working only through the redirect, and
+  that has failed before (decision #21's addendum), so change them. flashDK
+  is being updated by its own session; this repo has not verified that.
+- [ ] **Run once after the token is in place**, to confirm the publish step
+  and put a report back in the history.
+
+**Cost.** A third org change in under three weeks, each of which broke
+something outside this repository. The lesson in #21 holds: the redirect is
+a courtesy, not a plan.
+
+**What would justify revisiting.** Another move. If that happens, the
+registry, `uses:` lines and reporting repo should be parameters of one
+place, which today they are not.

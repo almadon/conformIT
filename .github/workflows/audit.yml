@@ -27,6 +27,6 @@ jobs:
   audit:
     uses: ./.github/workflows/reusable-audit.yml
     with:
-      reporting_repo: placidIT/conformIT-reporting
+      reporting_repo: almadon/conformIT-reporting
     secrets:
       reporting_token: ${{ secrets.CONFORMIT_REPORTING_TOKEN }}

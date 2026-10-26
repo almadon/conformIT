@@ -16,6 +16,7 @@ Anything a future reader would otherwise have to re-derive belongs in prose.
 | `docs/STATE.md` | What is true right now, including what's broken | Status lives in someone's head |
 | `docs/decisions.md` | Numbered decisions with reasoning and cost | Settled questions get re-litigated |
 | `docs/architecture.md`* | How the pieces fit and why each is where it is | Structure is only legible by reading all the code |
+| `docs/ownership.md`* | For each thing the project manages: who controls it, how, and why | Someone overwrites a setting the app's own UI owns |
 | `docs/security.md`* | The project's instance of the security posture | Trust boundaries are implicit |
 | `docs/credits.md`* | Dependencies, licences, and what was rejected | Obligations are unknown at release |
 | `CHANGELOG.md` | What changed and why, including reverts | History is only in git log |
@@ -26,9 +27,32 @@ the project is and is not, rather than how it's built.
 
 \* Conditional on having something to say. A project with no running
 components, no trust boundaries to describe, and no adopted dependencies
-can skip these three rather than write a near-empty file for the sake of
+can skip these four (`ownership.md` follows the same test as `architecture.md`: it applies when the project manages anything that is running) rather than write a near-empty file for the sake of
 the table. Record the skip in `docs/decisions.md`, the way conformIT's own
 does at #10, so a reader can tell "not applicable" apart from "overlooked."
+
+`docs/ownership.md` is one table, with a row for each managed thing:
+
+| Column | Says |
+|---|---|
+| Thing | The service, setting, dashboard, or file set |
+| Owner | This repo, the app's own UI, the user, or an external system |
+| Mechanism | Rewritten every run, seeded once, synced both ways, or read-only |
+| Why | The reason it is owned that way |
+| Where to change it | The one place an edit should be made |
+| Backup | How it is backed up and how it is restored |
+
+Where state is synced both ways, the row also states the direction, what
+triggers the sync (manual or automatic), and what wins in a conflict. A
+manual pull and push, so that an edit made in an app's UI is never
+overwritten silently, is a legitimate answer; an unstated one is not.
+Every module README opens with the same short contract block (what it does,
+who owns its settings, the state it keeps, how it rolls back, what it
+exposes), and the project README links to `ownership.md`. The template is
+[`templates/docs/ownership.md`](../templates/docs/ownership.md). The cost is
+one more file to keep honest; the alternative, leaving ownership implicit in
+the code, is how a rerun clobbers a hand edit. See
+[decisions.md](decisions.md) #24.
 
 `docs/security.md` is this project's own security posture and is distinct
 from a top-level `SECURITY.md`, which GitHub gives special handling

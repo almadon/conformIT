@@ -102,7 +102,7 @@ Picking wrong doesn't break anything, but it does mean redoing setup
 work later, so it's worth reading both before choosing.
 
 **Reference conformIT directly** (`uses:
-placidIT/conformIT/.github/workflows/reusable-audit.yml@v4` in your own
+almadon/conformIT/.github/workflows/reusable-audit.yml@v4` in your own
 workflow, per [`templates/.github/workflows/conform-audit.yml`](templates/.github/workflows/conform-audit.yml)):
 you get the standards as conformIT defines them, unmodified, and the
 audit tooling stays current with zero effort on your part beyond
@@ -121,7 +121,7 @@ blank page.
 | **Adding your own checks** | Not possible from the caller side | Edit `scripts/lib/audit-checks.sh` directly |
 | **Staying current costs** | One line (the pinned ref) to review per bump | Ongoing: every upstream change is a merge you have to evaluate |
 | **Divergence is** | Impossible by construction | Your responsibility to record, the way decision #1 records anjunatree's rejected slug format instead of pretending it didn't happen |
-| **Setup effort** | A three-line caller workflow, a reporting repo (made from [`placidIT/conformIT-reporting-template`](https://github.com/placidIT/conformIT-reporting-template)), a scoped PAT | The same, plus you now maintain a second copy of everything conformIT maintains |
+| **Setup effort** | A three-line caller workflow, a reporting repo (made from [`almadon/conformIT-reporting-template`](https://github.com/almadon/conformIT-reporting-template)), a scoped PAT | The same, plus you now maintain a second copy of everything conformIT maintains |
 | **Right for** | "I want these standards applied to my repos" | "I want to start from these standards and make them mine" |
 
 **The failure mode on each side, stated plainly:**
@@ -158,7 +158,7 @@ Output is split by audience, not just posted in one place. The job
 summary in this repo's Actions tab (public, since this repo is public)
 carries pass/warn/fail/crit counts only. The full per-finding detail,
 including file:line samples for anything the sensitive-content checks
-below flag, goes to `placidIT/conformIT-reporting` (private), one file per
+below flag, goes to `almadon/conformIT-reporting` (private), one file per
 target, overwritten each run so its git history is the trend record. See
 decision [#16](docs/decisions.md).
 
@@ -182,6 +182,25 @@ command-injection pattern (caught) and a string-concatenated SQL query
 (`templates/.github/workflows/codeql.yml`) an adopter runs on their own
 repo, since it needs per-repo build configuration this generic audit
 can't supply. See decision [#18](docs/decisions.md).
+
+The audit also looks at dependencies and supply chain: known
+vulnerabilities in lockfiles (npm, PyPI and Cargo, plus whatever else
+[osv-scanner](https://github.com/google/osv-scanner) reads), manifests with
+no lockfile, direct dependencies a breaking version behind, deprecated
+packages, outdated or floating Actions references in GitHub and Forgejo
+workflows, and end-of-life base images and language runtimes. Known
+vulnerabilities and end of life are failures; being behind is a warning;
+a lookup that failed is reported as incomplete, never as a pass. See
+decision [#23](docs/decisions.md) for what it does not cover.
+
+**Private and internal repos** are not in this repo's registry, because it
+is public and naming them would disclose them. Put them in
+`registry/targets.local.yaml` (gitignored; see
+[`registry/targets.local.example.yaml`](registry/targets.local.example.yaml))
+and run the audit on your own machine with your own credentials:
+`scripts/conform.sh audit --all --targets-file registry/targets.local.yaml`.
+A target can be `owner/repo`, `host.example/owner/repo`, a full clone URL,
+or a path to a local checkout.
 
 ## Provenance
 

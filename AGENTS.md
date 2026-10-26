@@ -41,7 +41,8 @@ shell. To check your work:
 ```bash
 grep -rn "—" README.md docs/ templates/ scripts/ .github/   # must be empty
                                                               # outside docs/writing-style.md's own examples
-shellcheck scripts/conform.sh scripts/lib/audit-checks.sh    # must be clean
+shellcheck -x scripts/conform.sh scripts/lib/*.sh               # must be clean (SC1091 info is expected)
+python3 -m py_compile scripts/lib/py/depcheck.py              # then delete scripts/lib/py/__pycache__
 bash scripts/conform.sh audit .                              # self-audit
 ```
 
@@ -49,7 +50,10 @@ bash scripts/conform.sh audit .                              # self-audit
 
 Bash targets 3.2 (macOS system bash), not just whatever's on the
 developer's machine: no `mapfile`, no associative arrays. See
-`templates/.githooks/commit-msg` for the established idiom.
+`templates/.githooks/commit-msg` for the established idiom. The
+registry-lookup checks are Python 3 standard library only
+(`scripts/lib/py/depcheck.py`); keep it that way, so there is nothing to
+install.
 
 Prose follows [docs/writing-style.md](docs/writing-style.md): no em
 dashes (mechanically checked), no telegraphic status fragments, written

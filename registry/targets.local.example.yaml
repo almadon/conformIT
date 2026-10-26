@@ -1,0 +1,35 @@
+# Template for registry/targets.local.yaml, which is gitignored.
+#
+# Copy this to registry/targets.local.yaml and replace the placeholders. The
+# copy never leaves your machine: it exists so private repos and internal
+# hosts can be audited without this public repository ever naming them.
+#
+# Run it locally, with your own credentials:
+#
+#   scripts/conform.sh audit --all \
+#     --targets-file registry/targets.local.yaml \
+#     --detail-dir ~/conformit-local-reports
+#
+# Do not run it from CI. The runner has no credentials for these, and the
+# job summary is public.
+#
+# Each entry is one of these forms:
+#
+#   owner/repo                      GitHub over https. Needs `gh auth` or a
+#                                   credential helper if the repo is private.
+#   host.example/owner/repo         another host over https (first segment has
+#                                   a dot).
+#   ssh://git@host/owner/repo       a full clone URL, used exactly as written.
+#   git@host:owner/repo             same, scp-style.
+#   ~/path/to/checkout              a local checkout you already have. It is
+#                                   cloned, so only committed content is
+#                                   audited, the same as for a remote.
+#
+# The parser is the same grep/sed one as registry/targets.yaml: one
+# `  - entry` per line, nothing nested.
+
+targets:
+  # - owner/private-repo
+  # - git.example.invalid/team/service
+  # - ssh://git@git.example.invalid/team/site
+  # - ~/Workspaces/Apps/some-project
