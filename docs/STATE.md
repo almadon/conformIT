@@ -5,7 +5,11 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-11-24. Release-age cooldown (decision #26), requested by the Projects Coordinator
+**Last updated:** 2026-11-24. Recorded the Consigliere session's eight proposed principles (13 to 20) as
+decision #27 with a triage, not adopted. A scanner false positive on email-
+shaped clone URLs is confirmed and not fixed.
+
+Earlier, 2026-11-24. Release-age cooldown (decision #26), requested by the Projects Coordinator
 after a stale cached `node:22-bookworm` image broke the burnand.shop build. A
 `cooldown` audit check reads config only and warns on a missing Dependabot or
 Renovate cooldown, a Forgejo repo with no security-update path, missing npm or
