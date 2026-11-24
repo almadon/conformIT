@@ -13,9 +13,7 @@ tried on real UI projects other than AnjunaTree.
 
 Earlier, 2026-11-24. Usability and accessibility standard (decision #30): `docs/accessibility.md`
 fixes the options and the floor, and the palettes in `visual-style.md` are
-examples. Open: `CONFORMIT_REPORTING_TOKEN` still needs recreating for
-`almadon/conformIT-reporting` (decision #25), and conformIT's README does not
-yet meet its own order.
+examples. Reporting works again: a run dispatched later on 2026-11-24 published to `almadon/conformIT-reporting`, so the 403s in decision #25 are fixed (the earlier entry below saying the token needs recreating is superseded). Still open: conformIT's own README does not yet meet its own order, and the new checks have not been tried on the Home Assistant, Novak or Cmdr projects.
 
 Earlier, 2026-11-24. The wizard rule as design principle 13, with decision #29. No audit check.
 
