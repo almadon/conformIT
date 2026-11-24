@@ -13,4 +13,5 @@ _conformit_docs_checks() {
   command -v python3 >/dev/null 2>&1 || return 0   # dep-checks already warned
   [ -f "$py" ] || { _conformit_note WARN "scripts/lib/py/docscheck.py not found: README checks did not run"; return 0; }
   _conformit_dep_emit "$(python3 "$py" readme "$repo")"
+  _conformit_dep_emit "$(python3 "$py" ui "$repo")"
 }

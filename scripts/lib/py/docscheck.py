@@ -8,6 +8,8 @@ never file contents.
 
     docscheck.py readme <repo>    section presence and order, a graphic near
                                   the top, and relative links that resolve
+    docscheck.py ui <repo>        usability and accessibility signals in a
+                                  repo that has a screen (decision #31)
 
 A README containing `<!-- conformit: exempt ... -->` is skipped entirely:
 forks of other people's projects are not restyled (decision #28).
@@ -157,14 +159,95 @@ def cmd_readme(repo):
         emit("PASS", "README follows the standard section order, opens with a graphic, and its relative links resolve")
 
 
+# --------------------------------------------------------------------- ui
+#
+# Docs/accessibility.md. Looks at source only and cannot test anything: it
+# finds the things that are visible in text (a viewport tag, zoom disabled, a
+# missing lang or alt, motion and focus handling, a text size control, viewport
+# tests) and says "found nothing" rather than "fails". Every finding is a WARN.
+
+UI_EXT = (".tsx", ".jsx", ".vue", ".svelte", ".astro", ".css", ".scss", ".html")
+MARKUP_EXT = (".html", ".astro", ".vue", ".svelte", ".tsx", ".jsx")
+SKIP_DIRS = ("node_modules/", "dist/", "build/", ".next/", "vendor/", "docs/", "templates/", "tests/fixtures/")
+VIEWPORT_TEST_RE = re.compile(r"setViewportSize|cy\.viewport|\bviewport\s*:\s*\{|page\.setViewport|devices\[|resizeTo\(|innerWidth\s*=")
+TEXT_CONTROL_RE = re.compile(r"font-?scale|text-?scale|text-?size|--font-scale|fontScale|textSize|font_size_scale", re.I)
+
+
+def _read(repo, rel):
+    try:
+        with open(os.path.join(repo, rel), encoding="utf-8", errors="replace") as fh:
+            return fh.read()
+    except OSError:
+        return ""
+
+
+def cmd_ui(repo):
+    files = [f for f in tracked(repo) if not any(f.startswith(d) or ("/" + d) in ("/" + f) for d in SKIP_DIRS)]
+    ui = [f for f in files if f.endswith(UI_EXT)]
+    # a repo with only stylesheets is not necessarily an app: want markup or components
+    if not any(f.endswith(MARKUP_EXT) for f in ui):
+        return
+    markup = [f for f in ui if f.endswith(MARKUP_EXT)]
+    css = [f for f in ui if f.endswith((".css", ".scss"))]
+    mtext = {f: _read(repo, f) for f in markup}
+    ctext = {f: _read(repo, f) for f in css}
+    alltext = "\n".join(list(mtext.values()) + list(ctext.values()))
+    problems = []
+
+    if not re.search(r"name\s*=\s*[\"']viewport[\"']", alltext):
+        problems.append("no viewport meta tag found, so a phone will render the page at desktop width")
+    zoom = [f for f, t in mtext.items() if re.search(r"user-scalable\s*=\s*(no|0)|maximum-scale\s*=\s*1(\.0)?\b", t)]
+    if zoom:
+        problems.append(f"pinch zoom is switched off by the viewport tag, which locks out people who need larger text: {', '.join(zoom[:3])}")
+    nolang = [f for f, t in mtext.items() if f.endswith(".html") and re.search(r"<html\b(?![^>]*\blang\s*=)", t)]
+    if nolang:
+        problems.append(f"{len(nolang)} HTML file(s) with no lang attribute on <html>, so screen readers guess the language: {', '.join(nolang[:3])}")
+
+    noalt = []
+    for f, t in mtext.items():
+        for m in re.finditer(r"<img\b[^>]*>", t, re.S):
+            tag = m.group(0)
+            if "{..." in tag or re.search(r"\balt\s*=", tag):
+                continue
+            noalt.append(f"{f}:{t.count(chr(10), 0, m.start()) + 1}")
+    if noalt:
+        problems.append(f"{len(noalt)} <img> tag(s) with no alt attribute (use alt=\"\" for a purely decorative image), e.g. {', '.join(noalt[:3])}")
+
+    ctext_all = "\n".join(ctext.values())
+    if re.search(r"\b(animation|transition)\s*:", ctext_all) and not re.search(r"prefers-reduced-motion|data-motion|reduce-motion|reduceMotion", alltext):
+        problems.append("animations or transitions with no reduced-motion handling (prefers-reduced-motion or a setting)")
+    if re.search(r"outline\s*:\s*(none|0)\b", ctext_all) and not re.search(r":focus-visible|:focus\s*\{[^}]*(outline|box-shadow)", ctext_all):
+        problems.append("the focus outline is removed with no visible replacement, so keyboard users cannot see where they are")
+
+    src_all = alltext
+    docs = "\n".join(_read(repo, f) for f in files if f.lower() == "readme.md") + "\n" + "\n".join(
+        _read(repo, f) for f in tracked(repo) if f.startswith("docs/") and f.endswith(".md"))
+    if not (TEXT_CONTROL_RE.search(src_all) or re.search(r"(?i)text size|font size", docs)):
+        problems.append("no text size control found (searched the source for a font or text scale, and the README and docs for \"text size\"); see docs/accessibility.md")
+
+    tests = [f for f in tracked(repo) if re.search(r"(playwright|cypress|wdio|vitest)\.?(config)?|\.(spec|test|e2e)\.[jt]sx?$|/e2e/|/tests?/", f)]
+    vp = any(VIEWPORT_TEST_RE.search(_read(repo, f)) for f in tests[:200])
+    if not vp:
+        problems.append("no automated viewport test found (searched test and browser-test files for a set viewport size); test at phone, tablet and desktop widths and at the largest text size")
+
+    if not re.search(r"(?i)accessib", docs):
+        problems.append("no statement of which accessibility options are offered and what was tested, in the README or docs")
+
+    for p_ in problems:
+        emit("WARN", p_)
+    if not problems:
+        emit("PASS", "viewport tag, lang, alt text, motion and focus handling, a text size control and viewport tests all found")
+
+
 def main(argv):
-    if len(argv) != 3 or argv[1] != "readme":
+    cmds = {"readme": cmd_readme, "ui": cmd_ui}
+    if len(argv) != 3 or argv[1] not in cmds:
         print(__doc__)
         return 2
     try:
-        cmd_readme(argv[2])
+        cmds[argv[1]](argv[2])
     except Exception as e:  # a helper bug must never take the audit down with it
-        emit("WARN", f"readme check failed internally ({type(e).__name__}); result incomplete")
+        emit("WARN", f"{argv[1]} check failed internally ({type(e).__name__}); result incomplete")
     return 0
 
 

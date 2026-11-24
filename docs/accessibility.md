@@ -33,6 +33,15 @@ scrolling through the main view.
 | Larger marks | Makes small interactive or data marks bigger, for people who find them hard to see or hit. Applies to anything that is a symbol rather than text. | Off |
 | Colour scheme | Light, dark, or follow the system. A project with several named themes (AnjunaTree has four) is fine; each has to pass the checks below. | Follow the system |
 
+**Text size is not optional.** Any UI that shows text offers a text size
+control, and builds so that it works: type is sized in relative units (`rem`,
+`em`, or a `--font-scale` variable on the root), not fixed pixels, so one
+setting scales everything, and the layout is checked at the largest step. This
+is separate from the browser's own zoom, which must also keep working: the
+page has to stay usable at 200% zoom (WCAG 1.4.4, Resize Text) and reflow
+without sideways scrolling at 320 CSS pixels wide (WCAG 1.4.10, Reflow). Never
+disable pinch zoom.
+
 Not every project needs every row: a UI with no small marks has no use for
 Larger marks. A row that applies and is missing is a gap to record, not to
 hide.
@@ -65,6 +74,33 @@ These hold whatever the theme.
 - **Words follow [ui-copy.md](ui-copy.md).** Plain labels, errors that say
   what to do next.
 
+## Test at different viewports
+
+A layout that works on the developer's monitor and breaks on a phone is the
+usual way an interface fails the people it was meant for. Every UI is tried at
+these sizes, with the text size at Largest and again at 200% browser zoom, in
+light and in dark:
+
+| Width | Stands for |
+|---|---|
+| 320 px | The smallest phone, and the reflow floor |
+| 390 px | A current phone, portrait |
+| 768 px | A tablet |
+| 1280 px | A laptop, which at 200% zoom behaves like 640 px |
+
+At each: nothing is cut off, nothing needs sideways scrolling (a map or a wide
+data table may scroll inside its own frame), controls are still 44 px, the
+focus ring is visible, and the main task can be completed with the keyboard.
+Also a phone in landscape, where height is the scarce thing.
+
+Do it automatically where the project has browser tests: a test file that sets
+the viewport (Playwright `setViewportSize`, Cypress `cy.viewport`) and takes
+a screenshot or asserts there is no horizontal overflow. Where it does not,
+do it by hand and say so under "What a project states". AnjunaTree's session
+shows it resizing the preview to a phone width and back while verifying a
+change, and its repository has no automated viewport test; both are worth
+copying in their own way, the second as the gap to close.
+
 ## Themes are free, with conditions
 
 A project may have one theme or twelve, in any palette. The conditions are
@@ -89,7 +125,29 @@ answer and an honest one; leaving it out reads as having tested.
   recommended here, not taken from a project that does it.
 - **Screen reader behaviour, phone layout, and other browsers** were not
   tested for AnjunaTree as far as its repository shows, and not by me.
-- **Audit.** None of this is checked mechanically yet. A check for "offers a
-  text size control" would be a keyword match, the objection recorded in
-  decision #24. The most useful mechanical piece is the contrast validator
-  for a project's own palette, which AnjunaTree already runs. See #30.
+- **Contrast.** The audit does not measure it. The useful mechanical piece
+  is a validator run against a project's own palette, which AnjunaTree
+  already does. Not built.
+
+## What the audit checks
+
+For a repository that has a screen (markup or components, not just
+stylesheets), the audit looks in the source for the signs below and warns when
+it finds none. It reads text; it cannot test anything, and "not found" means
+the check did not see it, not that it is absent.
+
+- a viewport meta tag, and that it does not disable pinch zoom;
+- a `lang` on every `<html>`;
+- an `alt` on every `<img>` (an empty one is fine for decoration);
+- reduced-motion handling wherever there are animations or transitions;
+- a visible focus style wherever the default outline is removed;
+- a text size control (a font or text scale in the source, or "text size"
+  named in the README or docs);
+- an automated test that sets a viewport size;
+- a statement in the README or docs of which accessibility options are offered
+  and what was tested.
+
+The text size and viewport-test checks are keyword searches, so a project that
+does the thing under another name can satisfy them by saying so in its
+documentation. That is the honest limit of a source scan: it prompts the
+question and reads the answer, it does not grade it. Decision #31.
