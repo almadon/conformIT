@@ -193,6 +193,12 @@ vulnerabilities and end of life are failures; being behind is a warning;
 a lookup that failed is reported as incomplete, never as a pass. See
 decision [#23](docs/decisions.md) for what it does not cover.
 
+It also checks that a release-age cooldown is configured (Dependabot
+`cooldown`, Renovate `minimumReleaseAge`, npm and pnpm settings) and that
+base images are pinned by digest, so a freshly published release is not
+adopted before others have had time to find a bad one; see decision
+[#26](docs/decisions.md).
+
 **Private and internal repos** are not in this repo's registry, because it
 is public and naming them would disclose them. Put them in
 `registry/targets.local.yaml` (gitignored; see
