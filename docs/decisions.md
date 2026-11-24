@@ -1560,3 +1560,61 @@ mattered and was not marked a security release; Renovate's digest handling
 turning out to bypass the age; or a way to see runner image age from a
 repository, which would let the audit cover the incident that prompted it.
 
+## 27. Eight proposed design principles from the Consigliere session, not adopted
+
+The Consigliere session proposed principles 13 to 20 at the maintainer's
+request. They are recorded here as proposals, and `design-principles.md` is
+unchanged. Principles are defaults every project is held to, several of
+these are narrow, and nobody has reviewed them yet; adopting them is a
+separate step.
+
+**Checked against the public Consigliere repo (`dc35fac`, 2026-10-28).**
+`hosts/bootstrap/reconcile.sh` and a per-host `fleet-reconcile.timer`
+exist. `RECONCILE_FULL_EVERY_SECS` is in `reconcile.sh`.
+`RECONCILE_PRECHECK` is in its `docs/decisions.md`, and `RECONCILE_PROFILE`
+in its `docs/cli-reference.md`. `Nice=`, `CPUWeight` and `IOSchedulingClass`
+are set in the baseline role. `CHANGEME` assertions exist in the
+`wazuh_agent`, `restic_server` and `certwarden_agent` roles. The repo is MIT.
+
+**Not checked, so taken as reported:** the Homarr role specifically, the
+Muximux and Grafana behaviour (principle 18), the 76 second, roughly 80 task
+measurement (16), the three CPU-minute figure (17), and the dropped commits
+from a `rebase --skip` loop (20). No `rebase --skip` appears in the source,
+which is expected for an incident, so nothing here corroborates it.
+
+**The proposals, with my triage.**
+
+| # | Proposal | Recommendation |
+|---|---|---|
+| 13 | Convergence belongs to the host: each host pulls and applies its own declaration | Adopt, conditional on more than one host and no need for an ordered rollout. Its source is one project. |
+| 14 | Skip repeat work, but bound the skip (forced full run after a maximum age, manual force, a record when skipped) | Adopt, merged with 15 and 2 as one reconciler principle |
+| 15 | Run the expensive check pass only when the declaration changed; never infer "nothing to apply" from a clean check alone | Adopt in that same principle. The proposer says it is **not yet measured end to end**, and that should stay in the text. |
+| 16 | Measure the loop before optimising it, and ship a profile switch | Do not adopt as a principle. It is a practice with one measurement behind it. At most a sentence under the reconciler principle. |
+| 17 | A background control loop must not compete with the workload it controls | Adopt, narrow. Cost: longer runs on a busy host. |
+| 18 | Manage a floor, not a ceiling, where an app has its own UI | Adopt together with `docs/ownership.md` from #24 (in `a8f9a35`, pushed), which it depends on. |
+| 19 | A dormant change fails loudly until its precondition is met | Adopt. The `CHANGEME` assertions are real. |
+| 20 | Never script around a history rewrite (no `rebase --skip` retry loops) | Not a design principle. It belongs with the history rules in `commit-and-history.md` and `AGENTS.md` rules 4 and 6. |
+
+Merging 14, 15 and part of 16 into principle 2 would leave five new
+principles, not eight, and would renumber them, so the numbers 13 to 20 in
+the proposal should not be quoted as final.
+
+**Still true of all of them:** each is a default, not a law, and each needs
+its cost stated in the principle itself, as #4 and #5 require. The
+proposals carry costs; the edit that adopts them must keep those.
+
+**Audit checks: none**, for the reason in #24. A heading match is trivially
+satisfied, and the audit cannot tell what a project reconciles.
+
+**A scanner finding reported alongside.** The Consigliere session says its
+audit has two failures that are scanner false positives: `git@github.com:`
+clone URLs read as email addresses, and example tailnet placeholders read as
+private hostnames. The first is confirmed: conformIT's own example file
+tripped the same check (`ssh://git@git.example.invalid/...`, reworded in the
+cooldown work). The second was not reproduced. Neither is fixed; changing
+the scanner's patterns touches `docs/security-posture.md` rule 9 and wants
+its own decision.
+
+**What would justify revisiting.** A second project using the reconciler
+pattern, which would test whether 13 to 15 generalise beyond Consigliere.
+
