@@ -1764,3 +1764,46 @@ are about order of operations, which a grep cannot see.
 revisiting.** A project shipping a wizard that applies without asking, which
 would show what a real check should look for.
 
+## 30. What is fixed in an interface is usability and accessibility, not the theme
+
+The maintainer's direction, after reading #28: theming and colour schemes
+are not hard rules. What the framework fixes is consistency in the usability
+and accessibility options, and the Anjunabeats catalog explorer (AnjunaTree)
+was named as the one with insight on this.
+
+**Chosen.** A new `docs/accessibility.md` states the principle (follow the
+system, let the user override, remember the override), the options every UI
+offers (text size, high contrast, reduce motion, larger marks, colour
+scheme) and the floor under any theme (keyboard, focus ring, 44px targets,
+colour never alone, measured contrast, resizable text, real structure). The
+palettes in `visual-style.md`, including Cmdr's and the diagram families,
+are now labelled examples, and the diagram colour meanings are a default.
+Themes are free, on the condition that a set of identity colours is checked
+as a set and the result recorded, which is design principle 10.
+
+**What I read, and what I did not do.** I read AnjunaTree's repository
+(`afterglowfc/anjunatree`, `fa45e36`, 2026-11-16): the settings model
+(four text sizes, `highContrast`, `reduceMotion` defaulting to the system
+preference, `largeMarks`), the `data-contrast` and `data-motion` CSS, the
+focus-visible rule, 44px controls, and the theme validator figures in
+`src/themes.ts`. I did not read the 5,748-message Anjunabeats session in
+full, only its latest messages, which were about playback and an `npm audit`
+fix and held nothing on accessibility, so anything that session knows beyond
+the repository is not here. I did not run the app, test it with a screen
+reader, or check any figure it reports.
+
+**A gap found in the reference.** AnjunaTree offers High contrast as a
+toggle and does not read `prefers-contrast` or `forced-colors`. The standard
+recommends honouring them and says it is a recommendation, not a practice
+taken from a project.
+
+**No audit check, again, with one candidate.** Offering a setting is a
+keyword match. What can be checked mechanically is contrast, so the useful
+future check is running a palette validator against a project's own colours,
+as AnjunaTree already does. Not built.
+
+**Cost.** Every project with a UI owes its users the same options, which is
+work, and the work is worth most to the people who need it. **What would
+justify revisiting.** A project where one of the options cannot apply and the
+"record the gap" route proves too soft; or the Anjunabeats session holding
+fixed requirements the repository does not show.

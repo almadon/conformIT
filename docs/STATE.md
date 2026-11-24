@@ -5,7 +5,13 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-11-24. The wizard rule as design principle 13, with decision #29. No audit check.
+**Last updated:** 2026-11-24. Usability and accessibility standard (decision #30): `docs/accessibility.md`
+fixes the options and the floor, and the palettes in `visual-style.md` are
+examples. Open: `CONFORMIT_REPORTING_TOKEN` still needs recreating for
+`almadon/conformIT-reporting` (decision #25), and conformIT's README does not
+yet meet its own order.
+
+Earlier, 2026-11-24. The wizard rule as design principle 13, with decision #29. No audit check.
 
 Earlier, 2026-11-24. Documentation pass (decision #28): a standard README order, `docs/visual-
 style.md`, `docs/ui-copy.md`, a deprecated-repo README template, a diagram

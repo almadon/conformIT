@@ -5,8 +5,12 @@ colours, and how a diagram is drawn. The aim is that someone who has seen
 one conforming project recognises the next one, and that none of it looks
 like it was generated in a hurry.
 
-This covers the README and the docs. It does not prescribe an app's own
-interface. See "Interfaces" at the end.
+This covers the README and the docs, and gives one worked example of an app
+interface. **The colours and themes here are examples, not rules.** A project
+chooses its own look. What conformIT does fix for anything with a screen is
+the set of usability and accessibility options and the floor they sit on,
+in [accessibility.md](accessibility.md). Where a palette below says
+"should", read it as "a good default".
 
 ## The graphic at the top
 
@@ -44,7 +48,7 @@ Hand-written inline SVG, in the style of Consigliere's `docs/images/layers.svg`
 - **Layers read top to bottom**, one coloured band each, numbered, with a
   short name and one line on what the layer is for. Parts of a layer are
   white cards inside its band, with a bold name and a quieter line under it.
-- **Colour means something and stays the same across projects.** Blue is
+- **Colour means something, and a project keeps its own meanings steady.** The meanings below are a default. Blue is
   declaring or inputs, green is acting or running, purple is configuring,
   amber is a boundary or a warning, teal is a network or transport, red is
   something that can hurt (secrets, destructive steps). A diagram uses only
@@ -98,8 +102,9 @@ fragments standing in for sentences, no list where a sentence would do.
 
 ## Interfaces
 
-A project with its own UI is held to the same instincts: clear hierarchy,
-the same light-and-dark behaviour, nothing decorative that does not help.
+A project with its own UI is held to the options and floor in
+[accessibility.md](accessibility.md), and to the same instincts: clear
+hierarchy, light-and-dark behaviour, nothing decorative that does not help.
 What follows is how Consigliere's Cmdr interface works, written down so
 another project can copy it. It comes from the Consigliere session's notes,
 not from my having used Cmdr, so treat it as a worked example, not a
