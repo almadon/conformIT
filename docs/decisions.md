@@ -1420,3 +1420,143 @@ a courtesy, not a plan.
 **What would justify revisiting.** Another move. If that happens, the
 registry, `uses:` lines and reporting repo should be parameters of one
 place, which today they are not.
+
+## 26. A release-age cooldown for dependencies, Actions and images
+
+Requested by the Projects Coordinator and stated as approved by the user.
+The trigger: the burnand.shop Forgejo build failed because the runner
+`runner-rmrg` on the host Sibeles was running a three-month-old cached
+`node:22-bookworm` (Node 22.23.1) while Astro 7 needs 22.23.4 or later.
+Nothing ever refreshed the image. That is the stale half of the problem;
+the opposite half is adopting a release the minute it appears, which is how
+hijacked packages reach people. The policy handles both.
+
+**Policy (as relayed; the owners of the runners and fleet decide it).**
+
+1. A new release waits **7 days** before it is adopted, **14 days** for a
+   major version. This covers npm and Python packages, GitHub and Forgejo
+   Actions, and base images.
+2. **Security releases are exempt.** Node 22.23.4 (2026-10-20) was one.
+   **On GitHub this is automatic** (Dependabot's cooldown does not apply to
+   security updates). **On Forgejo it is not**: Renovate's built-in
+   vulnerability alerts need the host platform's alert API, which Forgejo
+   does not have. The substitute, `osvVulnerabilityAlerts`, is experimental
+   and covers direct dependencies only, so a fix to a transitive package or
+   a base image will not arrive as an exempt PR. A Forgejo repo therefore
+   either enables `osvVulnerabilityAlerts` and still reviews transitive and
+   image fixes by hand (`npm audit` in the loop, urgent bumps made outside
+   the cooldown), or documents a manual security-review cadence.
+3. Runner images are refreshed on a schedule, not by hand. After the
+   cooldown, images are pinned by digest and the updater bumps the digest.
+
+**Chosen, in conformIT** (`cooldown` in `scripts/lib/py/depcheck.py`, run
+with the other dependency checks). It reads configuration only and makes no
+network calls, and every finding is a **WARN**, not a FAIL: this is a new
+policy with no existing base of conforming projects, so failing builds on it
+on day one would punish projects for a rule they did not have. It flags:
+
+- no Dependabot or Renovate config on a repo that has dependencies;
+- a Dependabot entry with no `cooldown`, a `default-days` under 7, or a
+  major-version wait under 14, and an ecosystem in use (npm, Python, Cargo,
+  Actions, Docker) with no Dependabot entry at all;
+- a Forgejo or Gitea repo with no Renovate config, since Dependabot does
+  not run there, and a Renovate config with no `minimumReleaseAge` of 7
+  days or more, or none of 14 or more for major versions (approximate: it
+  looks for any such value in the file, not for the rule that applies it);
+- Renovate with `vulnerabilityAlerts` disabled, which would make security
+  releases wait out the cooldown too;
+- a Forgejo or Gitea repo with Renovate that has neither
+  `osvVulnerabilityAlerts: true` nor a documented "manual security review"
+  (searched for in `docs/`, `README.md` and `SECURITY.md`). Either one
+  passes. Note what that means: OSV alerts alone still miss transitive and
+  image fixes, so passing this check shows a security path *exists*, not
+  that it is complete;
+- a repo using pnpm with no `minimumReleaseAge`, or npm with no
+  `min-release-age` in `.npmrc`, so the developer's or CI's own install
+  also waits;
+- a base image with no `@sha256:` digest (Dockerfiles and compose files).
+  The existing end-of-life check already reports images floating on
+  `:latest`.
+
+**Rejected.** Flagging "releases newer than N days" in the audit itself: it
+cannot tell a security release from a feature release in most ecosystems,
+and adopting a fresh release is not by itself wrong. The cooldown belongs
+in the updater and the installer, where it can actually hold a release
+back, so the audit checks that it is configured.
+
+**Verified.**
+
+- The check against eight fixture repos covering each branch above, and
+  against real repos: conformIT, flashDK, Consigliere, `anjunatree` and
+  `ha-propsense` each report a gap. conformIT has no updater config either,
+  so this change applies to itself and conformIT is not conforming.
+- npm 11.20.0 recognises `min-release-age` and `min-release-age-exclude`,
+  both off by default (`npm config get`).
+
+**VERIFY, from web search results only.**
+
+- npm: `min-release-age` was added in **npm 11.10** (the only version
+  confirmed here is 11.20.0). Sources disagreed on the option's exact name,
+  hence the local check above. Units are days.
+- pnpm: `minimumReleaseAge` (in minutes) arrived in **10.16**, with an
+  exclude list; reportedly on by default at 1440 minutes from pnpm 11.
+- Dependabot: `cooldown` takes `default-days` and `semver-major-days`,
+  `semver-minor-days`, `semver-patch-days` (1 to 90), and does not apply
+  to security updates. One page says an omitted `default-days` means a
+  3-day cooldown; another says the semver keys fall back to `default-days`.
+  This check requires `default-days` to be set explicitly.
+- **Renovate digest updates (item 3 of the policy).** A search result
+  describes an advisory (CVE-2026-88884) saying that before Renovate
+  **44.3.1**, digest updates were *not* subject to `minimumReleaseAge`.
+  Pinning images by digest and letting Renovate bump the digest is exactly
+  that path. Whoever runs Renovate for the Forgejo repos should confirm
+  its version before relying on the cooldown for image digests.
+- **Forgejo security exemption.** Framework-rose's
+  `deploy/dependency-updates.md` (commit `fd243ba`, local only, read here
+  but not independently tested) and a search both say OSV alerts are
+  experimental and direct-dependency-only. The Renovate documentation for
+  `osvVulnerabilityAlerts` and Forgejo's platform support were not read
+  directly. One source says `vulnerabilityAlerts.minimumReleaseAge: null`
+  is already the default, so setting it may be redundant.
+- **Untested on the runner, per framework-rose:** the regex manager that
+  lets Renovate read the runner label in `deploy/runner/config.yml` (its
+  key is `managerFilePatterns` on recent Renovate and `fileMatch` on older
+  versions), and running Renovate as a scheduled Forgejo Actions job.
+  Treat both as unverified until run on the runner. The label-digest pin in
+  `deploy/forgejo-runner.md` is described there as planned, not adopted.
+
+**Not covered, said plainly.**
+
+- **Runner image age.** The failure that started this lived in a cached
+  image on a runner host, which no repository file shows. The audit cannot
+  see it. The fix is the scheduled pull and restart owned by the Consigliere
+  session on Sibeles (`/opt/forgejo/runner/rmrg/config.yml`, label
+  `node:docker://node:22-bookworm`), and the runner documentation by
+  framework-rose. Neither was inspected here.
+- Whether Dependabot security updates are switched on is a repository
+  setting, not a file.
+- How old any particular dependency actually is. Only the policy being
+  configured is checked, not whether it was obeyed.
+
+**Onboarding checklist, for each repo that adopts it.**
+
+- [ ] GitHub repo: add `.github/dependabot.yml` with a `cooldown` block per
+  ecosystem and enable Dependabot security updates in the repo settings.
+- [ ] Forgejo repo: add `renovate.json` with `minimumReleaseAge` and keep
+  vulnerability alerts on. Renovate needs a Forgejo token for a bot
+  account and, to avoid rate limits looking up GitHub-hosted Actions and
+  changelogs, a GitHub token (VERIFY which scopes). Those are the
+  maintainer's to create; nothing here creates or stores them.
+- [ ] npm projects: `min-release-age=7` in `.npmrc`; pnpm projects:
+  `minimumReleaseAge: 10080` in `pnpm-workspace.yaml`.
+- [ ] Pin base images by digest once the tag has aged past the cooldown.
+
+**Cost.** Slower access to fixes that are not flagged as security fixes,
+and a pinned digest is a reviewed change on every bump, which is the point
+but is more PRs. Warnings on every existing project until each adopts it.
+
+**What would justify revisiting.** The cooldown delaying a fix that
+mattered and was not marked a security release; Renovate's digest handling
+turning out to bypass the age; or a way to see runner image age from a
+repository, which would let the audit cover the incident that prompted it.
+

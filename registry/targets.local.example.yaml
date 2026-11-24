@@ -31,5 +31,5 @@
 targets:
   # - owner/private-repo
   # - git.example.invalid/team/service
-  # - ssh://git@git.example.invalid/team/site
+  # - ssh://git@gitserver/team/site
   # - ~/Workspaces/Apps/some-project

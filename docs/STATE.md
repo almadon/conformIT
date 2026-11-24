@@ -5,7 +5,17 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-10-26. Fifteenth session: conformIT moved to
+**Last updated:** 2026-11-24. Release-age cooldown (decision #26), requested by the Projects Coordinator
+after a stale cached `node:22-bookworm` image broke the burnand.shop build. A
+`cooldown` audit check reads config only and warns on a missing Dependabot or
+Renovate cooldown, a Forgejo repo with no security-update path, missing npm or
+pnpm release-age settings, and base images with no digest. conformIT itself
+has no updater config and does not conform. The audit cannot see the runner
+image age that caused the incident; that fix belongs to the Consigliere
+session on Sibeles. Renovate's digest handling needs a version check (see
+#26).
+
+Earlier, 2026-10-26. Fifteenth session: conformIT moved to
 `almadon/conformIT` for good (decision #25). Every live reference was
 repointed; the history in earlier decisions was not rewritten. Found that the
 weekly audit has failed since 10-05; the 10-19 log shows a 403 at the

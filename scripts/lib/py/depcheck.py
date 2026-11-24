@@ -9,6 +9,7 @@ Called from scripts/lib/dep-checks.sh, one subcommand per check:
     depcheck.py deprecated  <repo>              deprecated packages recorded in lockfiles
     depcheck.py actions     <repo>              outdated, floating or deprecated-runtime Actions refs
     depcheck.py eol         <repo>              end-of-life base images and language runtimes
+    depcheck.py cooldown    <repo>              release-age cooldown configured, base images digest-pinned
 
 Output is one finding per line, `LEVEL<TAB>message`, LEVEL one of PASS, WARN,
 FAIL. A subcommand prints nothing when the repo has nothing of that kind, so
@@ -747,6 +748,196 @@ def cmd_eol(repo):
         emit("WARN", f"{NET.failures - f0} end-of-life lookup(s) failed, so the result above is incomplete")
 
 
+# ------------------------------------------------------------------- cooldown
+#
+# Policy (docs/decisions.md #26): a new release is not adopted for 7 days, or
+# 14 for a major version, so a hijacked or malicious release is usually found
+# and pulled before it arrives. Security releases are exempt. This reads
+# configuration only and makes no network calls: whether the cooldown is
+# *configured*, not whether any particular dependency is old enough.
+
+COOLDOWN_DAYS = 7
+COOLDOWN_MAJOR_DAYS = 14
+RENOVATE_FILES = {
+    "renovate.json", "renovate.json5", ".renovaterc", ".renovaterc.json",
+    ".github/renovate.json", ".github/renovate.json5",
+    ".gitlab/renovate.json", ".gitlab/renovate.json5",
+    ".forgejo/renovate.json", ".forgejo/renovate.json5",
+    ".gitea/renovate.json", ".gitea/renovate.json5",
+}
+DEPENDABOT_FILES = (".github/dependabot.yml", ".github/dependabot.yaml")
+AGE_RE = re.compile(r"minimumReleaseAge[\"']?\s*:\s*[\"']?\s*(\d+)\s*([a-zA-Z]*)")
+UNIT_DAYS = {"": 1, "d": 1, "day": 1, "days": 1, "h": 1 / 24, "hour": 1 / 24, "hours": 1 / 24,
+             "w": 7, "week": 7, "weeks": 7, "m": 30, "month": 30, "months": 30}
+
+
+def _renovate_ages(text):
+    """Every minimumReleaseAge in a Renovate config, in days. Unknown unit: skipped."""
+    out = []
+    for n, unit in AGE_RE.findall(text):
+        k = UNIT_DAYS.get(unit.lower())
+        if k is not None:
+            out.append(int(n) * k)
+    return out
+
+
+def _dependabot_entries(text):
+    """[(ecosystem, block_text)] for each `- package-ecosystem:` entry."""
+    parts = re.split(r"(?m)^(?=\s*-\s+package-ecosystem:)", text)
+    out = []
+    for blk in parts:
+        m = re.match(r"\s*-\s+package-ecosystem:\s*['\"]?([\w-]+)", blk)
+        if m:
+            out.append((m.group(1), blk))
+    return out
+
+
+def _dep_days(blk, key):
+    m = re.search(r"(?m)^\s*" + key + r":\s*(\d+)", blk)
+    return int(m.group(1)) if m else None
+
+
+def _digest_unpinned(repo, files):
+    """Image references in Dockerfiles and compose files with no @sha256 digest."""
+    out = []
+    for f in files:
+        base = os.path.basename(f)
+        is_docker = base.startswith("Dockerfile") or base.endswith(".dockerfile") or base == "Containerfile"
+        is_compose = re.match(r"^(docker-)?compose.*\.ya?ml$", base) or re.match(r"^docker-compose.*\.ya?ml$", base)
+        if not (is_docker or is_compose):
+            continue
+        aliases = set()
+        for i, line in enumerate(read(repo, f).splitlines(), 1):
+            image = None
+            if is_docker:
+                m = re.match(r"(?i)^\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?", line)
+                if m:
+                    image = m.group(1)
+                    if m.group(2):
+                        aliases.add(m.group(2).lower())
+            else:
+                m = re.match(r"^\s*image:\s*['\"]?([^\s'\"#]+)", line)
+                if m:
+                    image = m.group(1)
+            if not image or image == "scratch" or "$" in image or image.lower() in aliases:
+                continue
+            if "@sha256:" not in image:
+                out.append(f"{image} ({f}:{i})")
+    return out
+
+
+def cmd_cooldown(repo):
+    files = [f for f in tracked_files(repo) if not any(p in f for p in SKIP_PARTS)]
+    fset = set(files)
+    base = {f: os.path.basename(f) for f in files}
+
+    eco = {}  # what the repo uses -> Dependabot ecosystem names that cover it
+    if any(b == "package.json" for b in base.values()):
+        eco["npm"] = {"npm"}
+    if any(re.match(r"^requirements.*\.txt$", b) or b in ("pyproject.toml", "Pipfile", "setup.py") for b in base.values()):
+        eco["Python"] = {"pip", "uv"}
+    if any(b == "Cargo.toml" for b in base.values()):
+        eco["Cargo"] = {"cargo"}
+    gh_wf = any(f.startswith(".github/workflows/") for f in files)
+    fj_wf = any(f.startswith((".forgejo/workflows/", ".gitea/workflows/")) for f in files)
+    if gh_wf or fj_wf:
+        eco["Actions"] = {"github-actions"}
+    if any(b.startswith("Dockerfile") or b.endswith(".dockerfile") or b == "Containerfile" for b in base.values()):
+        eco["Docker"] = {"docker"}
+    if any(re.match(r"^(docker-)?compose.*\.ya?ml$", b) for b in base.values()):
+        eco.setdefault("Docker", set()).update({"docker", "docker-compose"})
+    if not eco:
+        return
+
+    reno = [f for f in files if f in RENOVATE_FILES]
+    pkg_reno = False
+    if "package.json" in fset and '"renovate"' in read(repo, "package.json"):
+        pkg_reno = True
+    dep = next((f for f in files if f in DEPENDABOT_FILES), None)
+    problems = []
+
+    # Renovate: is an age configured, and are security updates left on?
+    reno_ages = []
+    reno_text = ""
+    for f in reno + (["package.json"] if pkg_reno else []):
+        t = read(repo, f)
+        reno_text += t
+        reno_ages += _renovate_ages(t)
+    have_reno = bool(reno or pkg_reno)
+    reno_ok = have_reno and bool(reno_ages) and max(reno_ages) >= COOLDOWN_DAYS and min(reno_ages) >= 1
+    if have_reno and re.search(r"vulnerabilityAlerts[\"']?\s*:\s*\{[^}]*enabled[\"']?\s*:\s*false", reno_text, re.S):
+        problems.append("Renovate has vulnerability alerts disabled, so security releases would wait out the cooldown too")
+
+    # Dependabot: every entry needs a cooldown, and each ecosystem in use needs an entry.
+    dep_ok = False
+    if dep:
+        entries = _dependabot_entries(read(repo, dep))
+        have = {e for e, _ in entries}
+        short = []
+        for e, blk in entries:
+            if "cooldown:" not in blk:
+                short.append(f"{e}: no cooldown")
+                continue
+            d = _dep_days(blk, "default-days")
+            mj = _dep_days(blk, "semver-major-days")
+            if d is None or d < COOLDOWN_DAYS:
+                short.append(f"{e}: default-days {d if d is not None else 'unset'} (want {COOLDOWN_DAYS}+)")
+            major = mj if mj is not None else d
+            if major is None or major < COOLDOWN_MAJOR_DAYS:
+                short.append(f"{e}: major versions wait {major if major is not None else 'unset'} days (want {COOLDOWN_MAJOR_DAYS}+)")
+        uncovered = [name for name, covers in eco.items() if not (covers & have)]
+        dep_ok = bool(entries) and not short and not uncovered
+        if short:
+            problems.append(f"{dep} cooldown is below policy: {sample(short)}")
+        if uncovered:
+            problems.append(f"{dep} has no entry for: {', '.join(sorted(uncovered))}")
+
+    # Which updater is required depends on where the repo is hosted.
+    if fj_wf:
+        if not have_reno:
+            problems.append("Forgejo/Gitea workflows but no Renovate config (Dependabot does not run there), so nothing proposes updates and nothing enforces a cooldown")
+        elif not reno_ok:
+            problems.append(f"Renovate config has no minimumReleaseAge of {COOLDOWN_DAYS} days or more")
+        elif max(reno_ages) < COOLDOWN_MAJOR_DAYS:
+            problems.append(f"Renovate minimumReleaseAge is {max(reno_ages):g} days at most; none of {COOLDOWN_MAJOR_DAYS}+ found for major versions")
+        if have_reno:
+            # No platform alert API on Forgejo, so the security exemption is not
+            # automatic (decision #26). Either OSV alerts, or a stated manual cadence.
+            osv = re.search(r"osvVulnerabilityAlerts[\"']?\s*:\s*true", reno_text)
+            cadence = any(
+                re.search(r"(?i)manual security[- ]review", read(repo, f))
+                for f in files if f.endswith(".md") and (f.startswith("docs/") or base[f] in ("README.md", "SECURITY.md")))
+            if not (osv or cadence):
+                problems.append("Forgejo/Gitea repo with Renovate but no `osvVulnerabilityAlerts: true` and no documented manual security-review cadence, so a security release has no exempt path past the cooldown (Forgejo has no vulnerability-alert API)")
+    elif not (dep_ok or reno_ok):
+        if not dep and not have_reno:
+            problems.append("no Dependabot or Renovate config, so dependency updates are not automated and no release-age cooldown applies")
+        elif have_reno and not reno_ok and not dep:
+            problems.append(f"Renovate config has no minimumReleaseAge of {COOLDOWN_DAYS} days or more")
+    elif reno_ok and not dep_ok and max(reno_ages) < COOLDOWN_MAJOR_DAYS:
+        problems.append(f"Renovate minimumReleaseAge is {max(reno_ages):g} days at most; none of {COOLDOWN_MAJOR_DAYS}+ found for major versions")
+
+    # Client-side guard, so a developer's or CI's own install also waits.
+    npmrc = read(repo, ".npmrc") if ".npmrc" in fset else ""
+    ws = read(repo, "pnpm-workspace.yaml") if "pnpm-workspace.yaml" in fset else ""
+    if "pnpm-lock.yaml" in base.values() and not (
+            re.search(r"(?m)^\s*minimumReleaseAge\s*:\s*[1-9]", ws) or re.search(r"(?m)^\s*minimum-release-age\s*=\s*[1-9]", npmrc)):
+        problems.append("pnpm in use with no minimumReleaseAge, so installs take a release the minute it is published")
+    npm_lock = any(b in ("package-lock.json", "npm-shrinkwrap.json") for b in base.values())
+    if npm_lock and not re.search(r"(?m)^\s*min-release-age\s*=\s*[1-9]", npmrc):
+        problems.append("npm in use with no min-release-age in .npmrc (npm 11.10+), so installs take a release the minute it is published")
+
+    # Base images should be pinned by digest so a bump is a reviewed change.
+    unpinned = _digest_unpinned(repo, files)
+    if unpinned:
+        problems.append(f"{len(unpinned)} base image(s) not pinned by digest, so a cached or re-pulled tag can change underneath you: {sample(unpinned)}")
+
+    for msg in problems:
+        emit("WARN", msg)
+    if not problems:
+        emit("PASS", f"release-age cooldown configured ({COOLDOWN_DAYS} days, {COOLDOWN_MAJOR_DAYS} for major) and base images pinned by digest")
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__)
@@ -759,6 +950,7 @@ def main(argv):
         "deprecated": (cmd_deprecated, 1),
         "actions": (cmd_actions, 1),
         "eol": (cmd_eol, 1),
+        "cooldown": (cmd_cooldown, 1),
     }
     if cmd not in table or len(args) != table[cmd][1]:
         print(__doc__)

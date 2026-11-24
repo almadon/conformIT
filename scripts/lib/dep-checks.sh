@@ -88,7 +88,7 @@ _conformit_dep_checks() {
   # These detect their own subject matter and print nothing if the repo has
   # none of it, so they run unconditionally.
   local sub
-  for sub in lockfiles outdated deprecated actions eol; do
+  for sub in lockfiles outdated deprecated actions eol cooldown; do
     _conformit_dep_emit "$(python3 "$py" "$sub" "$repo")"
   done
 }
