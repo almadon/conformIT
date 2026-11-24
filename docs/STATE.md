@@ -5,7 +5,13 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-11-24. Usability and accessibility standard (decision #30): `docs/accessibility.md`
+**Last updated:** 2026-11-24. Accessibility audit check, a required text size
+control and viewport testing (decision #31): `docscheck.py ui` scans source for
+a viewport tag, lang, alt text, motion and focus handling, a text size control,
+viewport tests and an accessibility statement. Source scan only, WARN only, not
+tried on real UI projects other than AnjunaTree.
+
+Earlier, 2026-11-24. Usability and accessibility standard (decision #30): `docs/accessibility.md`
 fixes the options and the floor, and the palettes in `visual-style.md` are
 examples. Open: `CONFORMIT_REPORTING_TOKEN` still needs recreating for
 `almadon/conformIT-reporting` (decision #25), and conformIT's README does not

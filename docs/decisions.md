@@ -1807,3 +1807,50 @@ work, and the work is worth most to the people who need it. **What would
 justify revisiting.** A project where one of the options cannot apply and the
 "record the gap" route proves too soft; or the Anjunabeats session holding
 fixed requirements the repository does not show.
+
+## 31. An accessibility audit check, a required text size control, and viewport testing
+
+The maintainer's direction, as I was stacking the earlier changes for
+review: the audit check, text size controls, and viewport testing should be
+part of the standards as well. #30 had said no audit check, because "offers a
+text size control" is a keyword match (#24). This supersedes that part of
+#30. The reason for the change is that the maintainer asked, and that a
+check which prompts the question is better than none, provided the standard
+says plainly what it cannot see.
+
+**Chosen.**
+
+- `docs/accessibility.md`: text size is a required option and the type is
+  built in relative units so it works; the page keeps working at 200% zoom
+  and reflows at 320 CSS pixels (WCAG 1.4.4 and 1.4.10); pinch zoom is never
+  disabled. A new "Test at different viewports" section sets four widths (320,
+  390, 768, 1280), the largest text size, 200% zoom, light and dark, and
+  landscape, with what must hold at each. A closing section lists what the
+  audit checks.
+- `docscheck.py ui`: for a repo with markup or components, WARN when it finds
+  no viewport tag, pinch zoom disabled, `<html>` without `lang`, `<img>`
+  without `alt`, animation with no reduced-motion handling, a removed focus
+  outline with no replacement, no text size control, no automated viewport
+  test, or no accessibility statement. A repo with no screen prints nothing,
+  so conformIT itself is unaffected.
+
+**Verified.** Against a clean fixture (passes), a fixture with every problem
+(eight warnings), a non-UI repo (silent), and AnjunaTree, which passes all of
+it except automated viewport tests, matching what I found in its repository.
+Not verified: other real UI projects (Consigliere's Cmdr, the Novak UI, the
+Home Assistant integrations), so false positives on real code are unknown.
+
+**What it cannot do.** It reads source and tests nothing. The text size and
+viewport checks match keywords, and the focus and motion checks match
+patterns, so a project that does the right thing under an unexpected name will
+be warned, and one that merely contains the words may not be. It does not
+measure contrast, check a screen reader, or render anything. The check
+exists to prompt the question and the standard asks the project to answer in
+its documentation.
+
+**Cost.** More warnings on every UI project until each adds a viewport test
+and a statement. Possible false positives, tolerated because they are WARN
+and have an answer: say it in the docs. **What would justify revisiting.**
+The false-positive rate on real projects being high enough that people stop
+reading the warnings; or a contrast validator that could be run here, which
+would be a better check than any of these.
