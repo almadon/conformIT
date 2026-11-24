@@ -1854,3 +1854,44 @@ and have an answer: say it in the docs. **What would justify revisiting.**
 The false-positive rate on real projects being high enough that people stop
 reading the warnings; or a contrast validator that could be run here, which
 would be a better check than any of these.
+
+## 32. The em dash rule covers prose and comments, not code
+
+The maintainer clarified that the em dash rule applies to user
+documentation, READMEs and comments, the things a human reads, and that it
+must not affect actual code.
+
+**What was wrong.** The audit itself was already right: its check scans only
+`README.md` and `docs/*.md`. The overreach was in how the rule was stated and
+applied. `writing-style.md` called the rule "hard" without saying where it
+applies, and this repo's own build command grepped `scripts/` and `.github/`,
+which are code, so a dash in a string, a regex or a workflow would have failed
+a check meant for sentences. I also ran that broad grep myself several times
+this session while verifying changes. None of it found anything, so no code
+was edited because of it, but the wording invited it.
+
+**Chosen.** `writing-style.md` now has a "Where it applies" section: the rule
+covers documentation, READMEs and comments; it does not cover string
+literals, regular expressions, data and config files, test fixtures,
+generated output or vendored files, and a style check is never a reason to
+change how code behaves. The check command in `writing-style.md`, this repo's
+`AGENTS.md` and `templates/AGENTS.md` now uses `--include='*.md'` so it reads
+Markdown only. Tested with both the `ugrep` this shell uses and macOS's
+`/usr/bin/grep`: both skip scripts and SVG and report only Markdown.
+`ui-copy.md` and `visual-style.md` were reworded to match.
+
+**Comments are covered by the style but not checked.** Telling a comment from
+code takes a parser per language, and a pattern that guessed would sooner or
+later flag real code, the thing the maintainer asked not to happen. A
+reviewer catches a dash in a comment. If a mechanical check for comments is
+wanted, it would need to be per language and opt-in.
+
+**One reading to confirm.** User-facing strings inside an app (button labels,
+error messages) are human-read but live in code. I treated them as covered
+by `ui-copy.md`, which now says to avoid em dashes there as a style
+preference that is not checked, not as a rule. If the maintainer wants UI text
+fully exempt, that line comes out.
+
+**Cost.** A dash in a code comment is no longer caught by any tool. **What
+would justify revisiting.** Dashes turning up in comments often enough to
+matter, which would argue for the opt-in per-language check.

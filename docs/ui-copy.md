@@ -44,7 +44,9 @@ the README and the docs. If the interface says "device" and the docs say
 case, no exclamation marks, no humour that a tired user at 2am would not
 enjoy.
 
-**Same voice as the prose.** No em dashes, no filler, no marketing words.
+**Same voice as the prose.** Avoid em dashes here too, as in the docs (in UI
+text that is a style preference, not something the audit checks), and keep out
+filler and marketing words.
 Write what you would say to a colleague standing next to the screen.
 
 Source: the ha-propsense session, applying conformIT to a Home Assistant

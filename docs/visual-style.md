@@ -97,7 +97,7 @@ for the one phrase a skimmer needs, sparingly.
 ## Prose
 
 Write like a person explaining it to a colleague: see
-[writing-style.md](writing-style.md). No em dashes (the audit checks), no
+[writing-style.md](writing-style.md). No em dashes in prose (the audit checks the docs and READMEs), no
 fragments standing in for sentences, no list where a sentence would do.
 
 ## Interfaces
