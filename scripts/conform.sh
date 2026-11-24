@@ -2,7 +2,8 @@
 # conformIT CLI.
 #
 # Usage:
-#   scripts/conform.sh audit <path>          audit a local checkout
+#   scripts/conform.sh audit <path>          audit a local checkout (tracked files only: `git add` a
+#                                             new file first, or the audit will not see it)
 #   scripts/conform.sh audit <target>        clone and audit; <target> is owner/repo, host/owner/repo,
 #                                             a clone URL, or a path (see conformit_clone below)
 #   scripts/conform.sh audit --all [--detail-dir <dir>] [--targets-file <path>]

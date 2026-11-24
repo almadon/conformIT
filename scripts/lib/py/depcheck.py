@@ -590,6 +590,8 @@ def cmd_actions(repo):
                 cur = parse_ver(m.group(1))
             elif ref in DELIBERATELY_FLOATING.get((o, r), ()):
                 pass  # a selector by design; see DELIBERATELY_FLOATING
+            elif "conformit:allow-floating" in comment:
+                pass  # a recorded, per-line exception (decision #33); the reason follows the marker
             else:
                 floating.append(f"{name}@{ref} ({where[0]})")
         if cur is not None:
@@ -608,7 +610,7 @@ def cmd_actions(repo):
     else:
         emit("PASS", f"none of {n} action reference(s) is a major version behind latest")
     if floating:
-        emit("WARN", f"{len(floating)} action reference(s) float on a branch or unversioned ref instead of a pinned version: {sample(floating)}")
+        emit("WARN", f"{len(floating)} action reference(s) float on a branch or unversioned ref instead of a pinned version (pin to a tag or commit; if the project's own docs require the branch, add `# conformit:allow-floating <reason>` to that line): {sample(floating)}")
     if nosha:
         emit("WARN", f"{nosha} action reference(s) pinned by commit SHA with no `# vX` comment, so staleness cannot be checked")
     if deprecated:
@@ -846,6 +848,17 @@ def cmd_cooldown(repo):
         eco["Docker"] = {"docker"}
     if any(re.match(r"^(docker-)?compose.*\.ya?ml$", b) for b in base.values()):
         eco.setdefault("Docker", set()).update({"docker", "docker-compose"})
+    ha_manifest = False
+    for f in files:
+        if re.search(r"(^|/)custom_components/[^/]+/manifest\.json$", f):
+            try:
+                reqs = json.loads(read(repo, f)).get("requirements") or []
+            except ValueError:
+                reqs = []
+            if reqs:
+                ha_manifest = True
+    if ha_manifest:
+        eco["Home Assistant manifest"] = set()  # no Dependabot ecosystem reads it
     if not eco:
         return
 
@@ -885,7 +898,7 @@ def cmd_cooldown(repo):
             major = mj if mj is not None else d
             if major is None or major < COOLDOWN_MAJOR_DAYS:
                 short.append(f"{e}: major versions wait {major if major is not None else 'unset'} days (want {COOLDOWN_MAJOR_DAYS}+)")
-        uncovered = [name for name, covers in eco.items() if not (covers & have)]
+        uncovered = [name for name, covers in eco.items() if covers and not (covers & have)]
         dep_ok = bool(entries) and not short and not uncovered
         if short:
             problems.append(f"{dep} cooldown is below policy: {sample(short)}")
@@ -916,6 +929,9 @@ def cmd_cooldown(repo):
             problems.append(f"Renovate config has no minimumReleaseAge of {COOLDOWN_DAYS} days or more")
     elif reno_ok and not dep_ok and max(reno_ages) < COOLDOWN_MAJOR_DAYS:
         problems.append(f"Renovate minimumReleaseAge is {max(reno_ages):g} days at most; none of {COOLDOWN_MAJOR_DAYS}+ found for major versions")
+
+    if ha_manifest and not have_reno:
+        problems.append("custom_components manifest.json lists Python requirements, which Dependabot does not read, so they get no updates and no cooldown; Renovate's homeassistant-manifest manager reads them (VERIFY it matches custom_components paths in your repo)")
 
     # Client-side guard, so a developer's or CI's own install also waits.
     npmrc = read(repo, ".npmrc") if ".npmrc" in fset else ""
