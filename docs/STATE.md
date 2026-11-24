@@ -5,7 +5,9 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-11-24. Documentation pass (decision #28): a standard README order, `docs/visual-
+**Last updated:** 2026-11-24. The wizard rule as design principle 13, with decision #29. No audit check.
+
+Earlier, 2026-11-24. Documentation pass (decision #28): a standard README order, `docs/visual-
 style.md`, `docs/ui-copy.md`, a deprecated-repo README template, a diagram
 template, and a README order and link check (`docscheck.py`). Proposals from
 ha-propsense, the Cmdr notes, Novak Konzol and Consigliere are folded in.

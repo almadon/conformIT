@@ -1738,3 +1738,29 @@ valves. **What would justify revisiting.** The order fighting a real
 project's content; or the heading match, which is by meaning and so can be
 fooled, producing false passes.
 
+## 29. Wizards ask first, then ask permission
+
+The maintainer's rule, relayed by the Consigliere session, is now
+principle 13 in `design-principles.md`: a setup wizard collects its
+answers and changes nothing, shows what it will do and waits for an
+explicit yes (a flag when non-interactive, never a default yes), does not
+re-ask for an action already approved, and uses secrets once without
+storing or echoing them. See the principle for the source and what was
+checked in Consigliere's bootstrap scripts.
+
+**Numbering.** The principle took the number 13 because it was the next
+free one. Decision #27 proposes other principles and labelled them 13 to
+20, and said those numbers were not final. When those are adopted they
+renumber after this one.
+
+**No audit check, again.** The proposal asked for one where a mechanical
+check is possible. The only available check is looking for a prompt or an
+approval flag in files named bootstrap, install or setup, and that is
+satisfied by the word `Proceed` in a comment, the objection recorded in
+#24. Rule 4 is partly covered by the existing secret scanner. Rules 1 to 3
+are about order of operations, which a grep cannot see.
+
+**Cost.** One more confirmation in an installer. **What would justify
+revisiting.** A project shipping a wizard that applies without asking, which
+would show what a real check should look for.
+

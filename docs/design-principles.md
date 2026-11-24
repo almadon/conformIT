@@ -203,3 +203,37 @@ means the gate is too tight or the service legitimately restarts.
 Related: principle 2 is about detecting drift between declared and actual
 state. This one is about what happens when applying the declared state
 makes things worse.
+
+## 13. A setup wizard asks first, then asks permission
+
+Any guided setup, bootstrap or installer a project ships follows four rules.
+
+1. **Collect, then act.** It gathers every configuration answer first and
+   changes nothing while it does.
+2. **Show, then ask.** Before it applies, it says in plain terms what it
+   will do (what will be installed, written, enabled, scheduled) and waits
+   for an explicit yes. A non-interactive run needs an explicit flag (for
+   example `-Apply` or `BOOTSTRAP_APPLY=yes`), never a default yes.
+3. **Approval already given counts.** If the user's request or a standing
+   rule already covers exactly that action, the wizard need not ask again.
+   It says that it was covered, so the approval is visible rather than
+   assumed.
+4. **Secrets are used once.** A secret entered into a wizard is used for
+   the step that needs it. It is not stored, logged or echoed.
+
+A check-only pass before the ask (a dry run, `--check --diff`) is the
+natural way to make rule 2 concrete: the user approves what was just shown.
+
+Source: this is the maintainer's rule, relayed by the Consigliere session.
+Consigliere's `hosts/bootstrap/bootstrap.sh` and
+`windows/bootstrap/bootstrap.ps1` were read for it: both prompt for their
+inputs, run a check-only reconcile, ask `[y/N]` before applying, and when
+non-interactive apply nothing without `BOOTSTRAP_APPLY=yes` or `-Apply`.
+The auth key is read silently (`read -rs`, `-AsSecureString`). Not
+verified: whether steps that run before that gate (setting up the host's
+age key, installing tooling) write anything, which would be a departure from
+rule 1.
+
+**Cost:** one more confirmation in an installer, and a wizard author has to
+separate "ask" from "do". **Rejected:** a default yes with a `--dry-run`
+opt-in, because the safe path should be the default one.
