@@ -86,6 +86,60 @@ actually is, in a form a stranger can use without reading the code:
   reach for this instead of something else. If none comes to mind
   easily, that's worth noticing before writing the rest of the README.
 
+## README order
+
+After that opening, every README runs in the same order, so a reader who has
+seen one knows where to look in the next:
+
+1. **What it does**, then **Use cases**
+2. **Getting started** (install, first run)
+3. **Usage**
+4. **Configuration**
+5. **How it works** (architecture), which may instead come right after Use
+   cases when the shape is what a newcomer needs first, as in Consigliere's
+   README
+6. **Documentation**, the index of everything else
+7. **Development** (or **Contributing**)
+8. **Licence**
+
+Usage, Configuration and How it works are dropped when they have nothing to
+add; the others are not. The README also carries one picture under the
+status block, described in [visual-style.md](visual-style.md), and its
+relative links must point at something. The audit warns on a missing
+required section (What it does, Getting started, Licence), an out-of-order
+heading, no picture, and a broken relative link. It matches headings by
+meaning, not exact wording ("Install" counts as Getting started), so the
+names above are a guide, not a straitjacket.
+
+**Forks of other people's projects are exempt.** A fork kept to carry a fix
+is not ours to restyle. Mark it with
+`<!-- conformit: exempt fork of OWNER/REPO -->` in its README, or leave it
+out of the audit registry. See [decisions.md](decisions.md) #28.
+
+**Deprecated or moved repositories** get a different, much shorter README:
+the title, **Status: Deprecated**, one line on where it went, and a link to
+the replacement. No install steps, no old content; the history is in git.
+The template is
+[`templates/docs/README-deprecated.md`](../templates/docs/README-deprecated.md),
+and the audit accepts it without holding it to the order above. It does
+warn if the notice links nowhere.
+
+**Private repositories.** A repository that is not public is not licensed
+for reuse, and its README says so in the Licence section ("Private, not
+licensed for reuse") instead of leaving it blank or inventing a licence. It
+still carries a `LICENSE` file stating the same, so the file set is the same
+for every repo. A repository whose purpose is to be copied, such as a
+template, is the exception: it needs a real licence, chosen by the
+maintainer, because without one nobody may legally reuse it. Consigliere's
+fleet template was found without a `LICENSE` for this reason; picking one is
+the maintainer's decision and is not made here.
+
+**Status, warranty and LLM use go in one blockquote** directly under the
+title, as in the template. Earlier guidance and the first template put them
+in separate paragraphs; the Consigliere and Novak READMEs had already
+settled on a single blockquote, which reads better, so that is the
+standard.
+
 A template for this whole structure, including the disclosures below,
 lives at [`templates/docs/README.md`](../templates/docs/README.md); copy
 it rather than reconstructing the shape from this description each time.

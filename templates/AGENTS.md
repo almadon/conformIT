@@ -48,6 +48,7 @@ meant to be loaded into context, not read end to end.
 ### Build and test
 
 ```bash
+grep -rn "$(printf '\xe2\x80\x94')" README.md docs/   # must be empty (no em dashes)
 [the actual commands]
 ```
 

@@ -12,6 +12,8 @@
 
 # shellcheck source=dep-checks.sh
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/dep-checks.sh"
+# shellcheck source=docs-checks.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/docs-checks.sh"
 
 CONFORMIT_PASS=0
 CONFORMIT_WARN=0
@@ -513,6 +515,7 @@ conformit_audit_repo() {
   # packages, outdated Actions refs, end-of-life images and runtimes. See
   # scripts/lib/dep-checks.sh and docs/decisions.md #23.
   _conformit_dep_checks "$REPO"
+  _conformit_docs_checks "$REPO"
 
   # --- session-log hygiene ---------------------------------------------------
   # No note at all if chats/ doesn't exist: the convention is opt-in, and

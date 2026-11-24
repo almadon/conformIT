@@ -22,11 +22,14 @@ After: "The reconciler applies state on a schedule. Nobody runs it by hand."
 This is a hard rule, not a preference, because it's mechanically checkable:
 
 ```bash
-grep -rn "—" docs/ README.md
+grep -rn "$(printf '\xe2\x80\x94')" docs/ README.md AGENTS.md
 ```
 
 Run that before a commit that touches documentation. It should return
-nothing.
+nothing. The command builds the dash with `printf` instead of typing it, so
+the file that holds the command (usually `AGENTS.md`) does not contain the
+character it forbids and pass its own check. It also works in macOS's bash
+3.2.
 
 ## No telegraphic status fragments
 

@@ -5,7 +5,14 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-11-24. Recorded the Consigliere session's eight proposed principles (13 to 20) as
+**Last updated:** 2026-11-24. Documentation pass (decision #28): a standard README order, `docs/visual-
+style.md`, `docs/ui-copy.md`, a deprecated-repo README template, a diagram
+template, and a README order and link check (`docscheck.py`). Proposals from
+ha-propsense, the Cmdr notes, Novak Konzol and Consigliere are folded in.
+conformIT's own README fails the new check and has not been rewritten.
+Proposals from ha-niimbridge, ha-unity and ha-letpot had not arrived.
+
+Earlier, 2026-11-24. Recorded the Consigliere session's eight proposed principles (13 to 20) as
 decision #27 with a triage, not adopted. A scanner false positive on email-
 shaped clone URLs is confirmed and not fixed.
 

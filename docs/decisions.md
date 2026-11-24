@@ -1618,3 +1618,123 @@ its own decision.
 **What would justify revisiting.** A second project using the reconciler
 pattern, which would test whether 13 to 15 generalise beyond Consigliere.
 
+## 28. A standard README order, a visual style, and an audit check for both
+
+Requested by the Projects Coordinator, relaying the maintainer: README,
+docs and UIs across the HA (HACS) projects, Consigliere and Novak should be
+clean, easy to follow and written in prose that sounds like a person, with
+mostly the same order of contents, some colour, and a logo or graphic. The
+examples named were Consigliere's architecture diagram and its Cmdr
+interface. conformIT is the reference.
+
+**What was missing.** The README template had What this does, Use cases,
+Getting started, Documentation and Licence, no fixed place for usage,
+configuration, architecture or development, no picture, and no convention
+for colour or diagrams. The audit checked that a README existed and what it
+disclosed, not its shape.
+
+**Chosen.**
+
+- A fixed section order, in `documentation-standard.md` under "README
+  order" and in the rewritten `templates/docs/README.md`: What it does, Use
+  cases, Getting started, Usage, Configuration, How it works, Documentation,
+  Development, Licence. Usage, Configuration and How it works may be dropped
+  when empty. How it works may also come right after Use cases, because
+  Consigliere's README does exactly that and is the reference; the first
+  version of the check failed that README until this was allowed.
+- `docs/visual-style.md`: one picture under the status block, a diagram
+  style taken from Consigliere's `layers.svg` (numbered bands, white cards,
+  six colour families as fill and stroke pairs, CSS variables with a dark
+  mode, the system font, accessible title and description), and a generic
+  starting file, `templates/docs/images/overview.svg`.
+- `scripts/lib/py/docscheck.py`, run with the other checks: WARN on a missing
+  What it does, Getting started or Licence, an out-of-order heading, no
+  picture above the first section, and relative links in the README or
+  `docs/` that point at nothing. Headings match by meaning ("Install" counts
+  as Getting started). Em dashes were already checked. All WARN, not FAIL,
+  for the same reason as #26: a new rule with no conforming base.
+- **Forks are exempt.** `ha-homebox`, `memoket-ha`, `openwebui-importer` and
+  `niimprint` are forks kept to carry a fix, and their READMEs are not ours
+  to restyle. They are already left out of the registry (#23). A fork that is
+  audited directly can carry `<!-- conformit: exempt fork of OWNER/REPO -->`
+  in its README and the structure check skips it.
+
+**Verified.** The check against Consigliere's README (the reference, which
+passes), against fixtures for a clean README, a bad one and an exempt fork,
+and against conformIT itself. The diagram template parses as XML and renders
+in the preview pane in light mode.
+
+**Not verified.** The dark-mode rendering of the template (it uses the same
+variables as Consigliere's file, which I did not render in dark mode either).
+Consigliere's Cmdr interface was not seen, so `visual-style.md` says so and
+derives nothing from it. Nothing was checked against the HA or Novak
+projects' READMEs.
+
+**Proposals from the project sessions.** The coordinator asked for the
+proposals of ha-niimbridge, ha-propsense, ha-unity, ha-letpot, Consigliere
+(fork 3 and ctrlZen) and Novak Konzol to be folded in. Three have arrived: ha-propsense, the Consigliere session's Cmdr notes, and
+Novak Konzol. The others had not when this was written, and nothing stands
+in for them. ha-propsense raised four things:
+
+- **Commit trailers.** The standard says `Assisted-by:` replaces
+  `Co-Authored-By:`, but Claude Code appends its own `Co-Authored-By:`. Taken:
+  `commit-and-history.md` now says both may appear, the tool's line is read as
+  "this tool wrote it", it is not removed by rewriting history, and a project
+  may ask the tool to omit it without that being guaranteed. The report says a
+  project instruction does not override the harness; this session's own harness
+  text says a user's instruction does take precedence. These disagree, so it is
+  recorded as VERIFY per tool.
+- **UI copy.** Taken: a short `docs/ui-copy.md` (plain words, say what to do
+  next, paused is not broken, one term per concept). It generalises one
+  project's example and has not been tried elsewhere.
+- **The em dash command.** Taken: the check is now written with
+  `$(printf '\xe2\x80\x94')` in `writing-style.md`, this repo's `AGENTS.md`
+  and `templates/AGENTS.md`, so the file holding the command does not contain
+  the dash it forbids. Confirmed to work under bash.
+- **Images in HACS.** Taken as guidance in `visual-style.md` and a comment in
+  the README template: outside GitHub, use an absolute `raw.githubusercontent.com`
+  URL. That HACS renders it, and keeps an SVG's dark mode, is VERIFY.
+
+The **Cmdr notes** (Consigliere, ctrlZen) are folded into `visual-style.md`
+under Interfaces and "Documentation of a module": page order, a one-accent
+colour system, type, components, empty and error states, and the README
+pattern. They are secondhand. I measured the contrast ratios myself (the
+notes marked them VERIFY) and recorded that the light palette's `unknown`
+fails even 3:1 and several light status colours fall just under 4.5 as text.
+The Cmdr README the notes describe was not where I looked: the file I found
+at `consigliere/_docs-framework/hosts/roles/cmdr/README.md` is 55 lines with
+three sections, so it may be the old version or a different checkout. Not
+verified.
+
+**Novak Konzol** raised four things, all taken: a README for a deprecated or
+moved repo (`templates/docs/README-deprecated.md`, recognised by the check,
+which wants a link onward); a statement of where diagrams live and how they
+theme (`docs/images/*.svg`, CSS variables, a dark block); keeping file and
+environment-variable names out of what an end user reads (in `ui-copy.md`);
+and one status blockquote holding status, warranty and LLM use, which I
+chose over separate paragraphs because the Consigliere and Novak READMEs
+already agree on it.
+
+A later message from Consigliere (fork 3) summarised the order it settled
+on across three repos, which matches this standard (title, bold tagline,
+status blockquote, centred diagram, What it does, Use cases, Getting started
+straight after, then project sections, Documentation as a Read and For table,
+Contributing, License). Taken from it: the Read and For table header, errors
+that end with a next step, a rendered check for diagrams, and guidance for
+private repositories (README says "private, not licensed for reuse"; a
+`LICENSE` file says the same; a template repo needs a real licence, which is
+the maintainer's to choose). Its diagram description lists five tints;
+Consigliere's own `layers.svg` defines a sixth, red, which I kept.
+
+**conformIT does not conform to its own new check.** Its README has no What
+it does or Getting started section and no picture at the top. Fixing that
+means rewriting the reference README and drawing a diagram, which is the
+maintainer's call and not done here.
+
+**Cost.** Another set of warnings on every project until each adopts the
+order, and a README order that suits most projects awkwardly fits a few. The
+exemption marker and the freedom to drop empty sections are the relief
+valves. **What would justify revisiting.** The order fighting a real
+project's content; or the heading match, which is by meaning and so can be
+fooled, producing false passes.
+

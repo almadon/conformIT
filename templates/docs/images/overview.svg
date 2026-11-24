@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="t d">
+<title id="t">[Project] overview</title><desc id="d">[Describe the picture in a sentence: what sits at the top, what it flows into, and what ends up at the bottom.]</desc>
+<style>
+:root{--bg:#ffffff;--ink:#16202b;--mute:#566474;--card:#ffffff;
+--b:#e8f0fd;--bs:#2f6fdb;--g:#e6f5ec;--gs:#1f8a4c;--p:#f1eafb;--ps:#7a45c9}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1620;--ink:#e6edf5;--mute:#98a6b6;--card:#18222e;
+--b:#15233b;--bs:#6aa2ff;--g:#12291d;--gs:#4cc27f;--p:#231a37;--ps:#b18cf0}}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink)}
+.h{font-size:15px;font-weight:700}.s{font-size:11.5px;fill:var(--mute)}.c{font-size:12.5px;font-weight:600}.cs{font-size:10.5px;fill:var(--mute)}
+</style>
+<rect width="960" height="420" rx="14" fill="var(--bg)"/>
+
+<!-- Band 1: blue. Copy a band for each layer; keep 12px between bands.
+     Colour pairs (fill, stroke): blue b/bs, green g/gs, purple p/ps. See
+     docs/visual-style.md for amber, teal and red. -->
+<rect x="48" y="16" width="864" height="116" rx="12" fill="var(--b)" stroke="var(--bs)" stroke-width="1.5"/>
+<text class="h" x="64" y="42">1  [Layer name]</text>
+<text class="s" x="64" y="62">[One line on what this layer is for.]</text>
+<rect x="260" y="40" width="190" height="64" rx="8" fill="var(--card)" stroke="var(--bs)" stroke-opacity=".55"/>
+<text class="c" x="272" y="64">[Part]</text><text class="cs" x="272" y="84">[what it is]</text>
+<rect x="466" y="40" width="190" height="64" rx="8" fill="var(--card)" stroke="var(--bs)" stroke-opacity=".55"/>
+<text class="c" x="478" y="64">[Part]</text><text class="cs" x="478" y="84">[what it is]</text>
+<rect x="672" y="40" width="190" height="64" rx="8" fill="var(--card)" stroke="var(--bs)" stroke-opacity=".55"/>
+<text class="c" x="684" y="64">[Part]</text><text class="cs" x="684" y="84">[what it is]</text>
+
+<!-- Band 2: green -->
+<rect x="48" y="144" width="864" height="116" rx="12" fill="var(--g)" stroke="var(--gs)" stroke-width="1.5"/>
+<text class="h" x="64" y="170">2  [Layer name]</text>
+<text class="s" x="64" y="190">[One line.]</text>
+<rect x="260" y="168" width="190" height="64" rx="8" fill="var(--card)" stroke="var(--gs)" stroke-opacity=".55"/>
+<text class="c" x="272" y="192">[Part]</text><text class="cs" x="272" y="212">[what it is]</text>
+<rect x="466" y="168" width="190" height="64" rx="8" fill="var(--card)" stroke="var(--gs)" stroke-opacity=".55"/>
+<text class="c" x="478" y="192">[Part]</text><text class="cs" x="478" y="212">[what it is]</text>
+
+<!-- Band 3: purple -->
+<rect x="48" y="272" width="864" height="116" rx="12" fill="var(--p)" stroke="var(--ps)" stroke-width="1.5"/>
+<text class="h" x="64" y="298">3  [Layer name]</text>
+<text class="s" x="64" y="318">[One line.]</text>
+<rect x="260" y="296" width="190" height="64" rx="8" fill="var(--card)" stroke="var(--ps)" stroke-opacity=".55"/>
+<text class="c" x="272" y="320">[Part]</text><text class="cs" x="272" y="340">[what it is]</text>
+</svg>
