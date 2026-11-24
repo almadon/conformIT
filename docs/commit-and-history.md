@@ -103,6 +103,18 @@ Software Foundation, LLVM, and QEMU, and it replaces the older
 `Co-Authored-By:` pattern for AI specifically. `Co-Authored-By:` still
 means what it always meant: a human who worked on the change.
 
+**When the tool adds its own trailer.** Some coding tools, Claude Code
+among them, append their own `Co-Authored-By: <model>` line to a commit
+they make. The standard asks for `Assisted-by:`, so such a commit can end
+up with both. That is acceptable: keep `Assisted-by:`, leave the tool's line
+alone, and do not rewrite history to remove it. Read the tool's line as
+"this tool wrote it", not as a human co-author, which stays what
+`Co-Authored-By:` means for a person. A project that would rather not have
+the tool's line can say so in its `CLAUDE.md` or `AGENTS.md`, but whether a
+given tool obeys that is the tool's decision (VERIFY per tool); a session
+that cannot suppress it should not fight it, and should not guess. The
+commit-msg hook accepts both.
+
 **An AI never gets a `Signed-off-by:`.** Where a project uses the
 Developer Certificate of Origin, `Signed-off-by:` certifies that the
 signer wrote the change or has the right to submit it under the

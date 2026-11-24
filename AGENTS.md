@@ -39,7 +39,7 @@ There's no build step; `docs/` is prose and `scripts/`/`templates/` are
 shell. To check your work:
 
 ```bash
-grep -rn "—" README.md docs/ templates/ scripts/ .github/   # must be empty
+grep -rn "$(printf '\xe2\x80\x94')" README.md docs/ templates/ scripts/ .github/   # must be empty
                                                               # outside docs/writing-style.md's own examples
 shellcheck -x scripts/conform.sh scripts/lib/*.sh               # must be clean (SC1091 info is expected)
 python3 -m py_compile scripts/lib/py/depcheck.py              # then delete scripts/lib/py/__pycache__

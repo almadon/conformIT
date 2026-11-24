@@ -5,56 +5,88 @@ Copy this into a project's root as README.md and fill in every bracketed
 placeholder. Delete this comment block once you're done; it's instructions
 for the person filling the template in, not part of the finished README.
 
-Structure and reasoning: docs/documentation-standard.md, "What a README
-opens with" and "Status, warranty, and LLM disclosure."
+Keep the section order. Drop a section only if it has nothing to say
+(Usage and Configuration are the usual candidates); don't reorder. The
+audit warns when the order drifts. Write like a person explaining it to a
+colleague: docs/writing-style.md.
+
+A fork of someone else's project is not restyled. Put this on its own line
+anywhere in its README and the structure check skips it:
+<!-- conformit: exempt fork of OWNER/REPO -->
+
+Reasoning: docs/documentation-standard.md, "README order", and
+docs/visual-style.md for the graphic and the diagram.
 -->
 
 # [Project name]
 
-[One-sentence description: what it is and what it does.]
+**[One sentence, in bold: what it is and what it does.]**
 
-**Status: in testing.** [Or: Stable. Or: Deprecated, see [replacement].]
-[One line on what "in testing" means concretely for this project, if
-anything beyond the default applies. Example: "core commands work; the
-plugin API is still changing." Delete this sentence if the default
-explanation in documentation-standard.md is enough.]
+> **Status: in testing.** [Or: Stable. Or: Deprecated, see [replacement].
+> One line on what that means for this project, if the default meaning in
+> documentation-standard.md is not enough.]
+> This project comes with no warranty or guarantee of fitness for any
+> purpose. Use it at your own risk.
+>
+> **LLM use.** [State plainly whether an LLM was used to build or maintain
+> this project, and roughly how. Example: "Built and maintained with
+> substantial AI assistance ([tool]). Design decisions and reviews are by a
+> human; generated code is reviewed before it is merged." If none was used,
+> say that instead of leaving the line out.]
 
-This project comes with no warranty or guarantee of fitness for any
-purpose. Use it at your own risk.
+<!-- Shown outside GitHub (HACS, a package index)? Use an absolute
+     https://raw.githubusercontent.com/OWNER/REPO/main/... URL here. -->
+<p align="center">
+  <img src="docs/images/overview.svg" alt="[One sentence describing the picture, for someone who cannot see it.]" width="860">
+</p>
 
-**LLM use:** [State plainly whether an LLM was used to build or maintain
-this project, and roughly how. Example: "This project is built and
-maintained with substantial AI assistance ([tool name]). Architectural
-decisions and reviews are by a human; generated code is reviewed before
-merge." If no LLM was involved, say that instead of omitting the line.
-Omission reads as an oversight, not as "not applicable."]
+## What it does
 
-## What this does
-
-[A short paragraph: what it takes as input, what it produces, what it's
-for, mechanically. Not marketing copy: describe the mechanism.]
+[A short paragraph: what it takes as input, what it produces, what it's for,
+mechanically. Not marketing copy.]
 
 ## Use cases
 
-- [A concrete scenario where someone would reach for this.]
-- [A second one, if there is one. Don't pad this to look thorough; one
-  real use case beats three vague ones.]
+**Reach for it when** [a concrete scenario].
+
+**Look elsewhere when** [the honest limit, so nobody wastes an afternoon].
 
 ## Getting started
 
 ```bash
-[the actual commands: install, run, verify it worked]
+[the actual commands: install, run, check that it worked]
 ```
+
+## Usage
+
+[The everyday commands or screens, with a short example each. Skip this
+section if Getting started already covers it.]
+
+## Configuration
+
+[What can be changed, where, and what the defaults are. A table works well
+for options. Say which settings the project owns and which belong to the
+user: see docs/ownership.md if you have one.]
+
+## How it works
+
+[A few paragraphs and, if the shape is not obvious, one diagram. Link the
+long version: docs/architecture.md.]
 
 ## Documentation
 
-| | |
+| Read | For |
 |---|---|
 | [Where this got to](docs/STATE.md) | Current state and open problems. Read first if picking this up. |
-| [Architecture](docs/architecture.md) | How the pieces fit, if applicable. See documentation-standard.md on when this is conditional. |
+| [Architecture](docs/architecture.md) | How the pieces fit, if applicable. |
 | [Decisions](docs/decisions.md) | Every significant choice, with reasoning and cost. |
 | [Security](docs/security.md) | If applicable. |
 | [Credits](docs/credits.md) | If applicable. |
+
+## Development
+
+[How to run the tests, the checks that must pass before a change, and where
+to start reading the code. Link CONTRIBUTING.md if there is one.]
 
 ## Licence
 

@@ -6,6 +6,8 @@
 |---|---|
 | [Rules of Engagement](rules-of-engagement.md) | How an AI agent works in a conforming repo |
 | [Design principles](design-principles.md) | Structural defaults, each with its cost |
+| [UI copy](ui-copy.md) | Plain labels, empty states and error messages for anything with a screen |
+| [Visual style](visual-style.md) | The README graphic, the colour palette, and how a diagram is drawn |
 | [Security posture](security-posture.md) | Credentials, privilege, untrusted input, exposure |
 | [Licensing & provenance](licensing-and-provenance.md) | Dependencies, licences, attribution, clean-room |
 | [Documentation standard](documentation-standard.md) | Required files and the honesty conventions |
