@@ -19,10 +19,21 @@ hand."
 
 After: "The reconciler applies state on a schedule. Nobody runs it by hand."
 
-This is a hard rule, not a preference, because it's mechanically checkable:
+### Where it applies
+
+The rule is about **prose people read**: user documentation, READMEs, and
+comments. It is not a rule about code. A string literal, a regular
+expression, a data or config file, a test fixture, generated output and
+vendored files are all left alone, and a program that has to match or print
+a dash legitimately contains one (this repo's own scanner matches the byte).
+Nothing here should ever be a reason to change how code behaves, or to edit
+a line of code to satisfy a style check.
+
+For documentation it is a hard rule, not a preference, because it's
+mechanically checkable. The check looks at Markdown only:
 
 ```bash
-grep -rn "$(printf '\xe2\x80\x94')" docs/ README.md AGENTS.md
+grep -rn --include='*.md' "$(printf '\xe2\x80\x94')" README.md AGENTS.md docs/
 ```
 
 Run that before a commit that touches documentation. It should return
@@ -30,6 +41,11 @@ nothing. The command builds the dash with `printf` instead of typing it, so
 the file that holds the command (usually `AGENTS.md`) does not contain the
 character it forbids and pass its own check. It also works in macOS's bash
 3.2.
+
+Comments follow the same style, but the audit does not check them: telling
+a comment from code takes a parser for every language, and a pattern that
+guesses would sooner or later flag real code. A reviewer catches the dash in
+a comment, the same way they catch any other lapse in how it is written.
 
 ## No telegraphic status fragments
 
