@@ -5,7 +5,15 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-11-27. First adoption reports (decision #33): fixed a
+**Last updated:** 2026-11-25. Corrected the cooldown check: Dependabot has no
+`semver-major-days` for Actions or images, and earlier guidance asked for it
+(decision #34). Placeholder addresses now pass the scanners, and a bug that hid
+a real private address beside an exempt one is fixed (#35). Added a recorded
+exception for unpinned files and `docs/dependency-updates.md` (#36). Open: how
+to hold major Action and image updates 14 days (#34), and whether a declared
+private repo may downgrade the private-address check (not built).
+
+Earlier, 2026-11-27. First adoption reports (decision #33): fixed a
 cooldown-check bug that reported compliant inline Dependabot mappings as unset,
 added a per-line floating-ref exception and a Home Assistant manifest warning,
 and documented module READMEs and extra sections. Open: two sensitive-content

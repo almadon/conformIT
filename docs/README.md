@@ -8,6 +8,7 @@
 | [Design principles](design-principles.md) | Structural defaults, each with its cost |
 | [Usability and accessibility](accessibility.md) | The options every UI offers and the floor it clears, whatever its theme |
 | [UI copy](ui-copy.md) | Plain labels, empty states and error messages for anything with a screen |
+| [Pinning and keeping up to date](dependency-updates.md) | Pins, updaters, the release cooldown, and recorded exceptions |
 | [Visual style](visual-style.md) | The README graphic, the colour palette, and how a diagram is drawn |
 | [Security posture](security-posture.md) | Credentials, privilege, untrusted input, exposure |
 | [Licensing & provenance](licensing-and-provenance.md) | Dependencies, licences, attribution, clean-room |

@@ -2038,3 +2038,26 @@ A private fleet repo that exists to list addresses still fails this check.
 **Cost.** Someone could publish a real host under an `example` label and it
 would pass. That takes naming it that way on purpose. **What would justify
 revisiting.** Any real address found to have passed through one of these.
+
+## 36. A recorded exception for unpinned files, and a guide to pinning and updates
+
+Consigliere keeps `requirements-ci.txt` unpinned on purpose, so its linter
+picks up new rules, and the audit had no way to record that. The maintainer
+approved an exception comment and asked for the pinning and update system to
+be explained.
+
+**Chosen.** `# conformit:allow-unpinned <reason>` in a `requirements*.txt`,
+`pyproject.toml` or `Cargo.toml` takes the file out of the unpinned warning
+and lists it in a pass note that says nothing covers what it installs. The
+reason is required, and `conformit:allow-floating` from #33 now requires one
+too, so a bare marker silences nothing. `package.json` has no comments and
+gets no exception. `docs/dependency-updates.md` explains pin, propose, wait
+and check, with configs for Dependabot and Renovate and a routine.
+
+**Verified:** no marker warns, a marker with a reason is listed, a bare marker
+still warns, and the same for floating refs. The sample configs in the guide
+were not run through Dependabot's or Renovate's validators.
+
+**Cost.** An exception also leaves the cooldown, and the audit cannot judge
+the reason. **What would justify revisiting.** Reasons that stop meaning
+anything, or a project needing the same for `package.json`.

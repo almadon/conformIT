@@ -239,11 +239,19 @@ def _py_requirements_pinned(text):
     return bool(reqs) and all("==" in r for r in reqs)
 
 
+# A recorded, per-file exception. The reason is required: a bare marker does nothing.
+ALLOW_UNPINNED_RE = re.compile(r"#[ \t]*conformit:allow-unpinned[ \t]+\S")
+
+
 def cmd_lockfiles(repo):
     files = tracked_files(repo)
-    missing = []
+    missing, allowed = [], []
     for f in files:
         base = os.path.basename(f)
+        is_manifest = base in ("pyproject.toml", "Cargo.toml") or re.match(r"^requirements.*\.txt$", base)
+        if is_manifest and ALLOW_UNPINNED_RE.search(read(repo, f)):
+            allowed.append(f)
+            continue
         if base == "package.json":
             try:
                 pj = json.loads(read(repo, f) or "{}")
@@ -270,6 +278,8 @@ def cmd_lockfiles(repo):
             f"{len(missing)} manifest(s) with no lockfile or unpinned versions, so what gets "
             f"installed is not reproducible and the vulnerability check cannot see it: {sample(missing)}",
         )
+    if allowed:
+        emit("PASS", f"{len(allowed)} manifest(s) recorded as deliberately unpinned, which also means no cooldown or vulnerability check covers what they install: {sample(allowed)}")
 
 
 # ------------------------------------------------------------------- outdated
@@ -590,7 +600,7 @@ def cmd_actions(repo):
                 cur = parse_ver(m.group(1))
             elif ref in DELIBERATELY_FLOATING.get((o, r), ()):
                 pass  # a selector by design; see DELIBERATELY_FLOATING
-            elif "conformit:allow-floating" in comment:
+            elif re.search(r"conformit:allow-floating[ \t]+\S", comment):
                 pass  # a recorded, per-line exception (decision #33); the reason follows the marker
             else:
                 floating.append(f"{name}@{ref} ({where[0]})")
