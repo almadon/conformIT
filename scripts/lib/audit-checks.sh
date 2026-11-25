@@ -231,6 +231,11 @@ _conformit_scan_emails() {
             noreply@*|no-reply@*) continue ;;
             *@*.noreply.github.com) continue ;;
             *@example.com|*@example.org|*@example.net|*@test.com|*@domain.com|*@yourdomain.com) continue ;;
+            # Reserved for documentation (RFC 2606, RFC 6761): nobody's address.
+            *@*.example.com|*@*.example.org|*@*.example.net|*@*.example|*@*.invalid|*@*.test) continue ;;
+            # The shared SSH login of a public forge, as in a clone URL. Exact
+            # matches only: no other user, and no other host. Decision #35.
+            git@github.com|git@gitlab.com|git@bitbucket.org|git@codeberg.org|git@code.forgejo.org) continue ;;
           esac
           if ! printf '%s\n' "$allowed" | grep -qxF "$lower"; then
             printf '%s:%s:%s\n' "$f" "$ln" "$email"
@@ -250,11 +255,19 @@ _conformit_scan_emails() {
 _conformit_scan_private_urls() {
   local repo="$1"
   local f
+  # Exempt tokens are removed from the line before matching, one token at a
+  # time. Dropping the whole line instead, as this used to, hid a real address
+  # that shared a line with a documentation one. Exempt: loopback, the RFC 5737
+  # ranges, and hostnames with a label that is exactly `example`
+  # (id.example.ts.net; a label that only ends in those letters does not
+  # count). Decision #35.
+  local doc_ip='s/(^|[^0-9.])(127\.0\.0\.1|0\.0\.0\.0|192\.0\.2\.[0-9]{1,3}|198\.51\.100\.[0-9]{1,3}|203\.0\.113\.[0-9]{1,3})([^0-9]|$)/\1 \3/g'
+  local doc_host='s/(^|[^A-Za-z0-9.-])([A-Za-z0-9-]+\.)*example\.([A-Za-z0-9-]+\.)*(internal|corp|lan|ts\.net)([^A-Za-z0-9-]|$)/\1 \5/g'
   _conformit_scannable_files "$repo" | while IFS= read -r f; do
     _conformit_prose_or_raw "$repo/$f" \
+      | sed -E -e "$doc_ip" -e "$doc_ip" -e "$doc_host" -e "$doc_host" \
       | grep -E \
         '(\b10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\b|\b172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}\b|\b192\.168\.[0-9]{1,3}\.[0-9]{1,3}\b|[A-Za-z0-9-]+\.(internal|corp|lan|ts\.net)\b)' \
-    | grep -vE '\b(127\.0\.0\.1|0\.0\.0\.0|192\.0\.2\.[0-9]{1,3}|198\.51\.100\.[0-9]{1,3}|203\.0\.113\.[0-9]{1,3})\b' \
     | sed -E "s#^([0-9]+):.*#${f}:\1#"
   done
 }

@@ -147,6 +147,23 @@ This is a scan for what's already public and shouldn't be, not a
 guarantee nothing was missed. A regex-based check has a real false-negative
 rate; treat a clean scan as "nothing obvious found," not as proof.
 
+### Generify examples
+
+Docs, templates, sample configs and `.env.example` files use values that
+cannot belong to anyone. The audit leaves these alone:
+
+| For | Write |
+|---|---|
+| an email address | `you@example.com`, or any address under `example.com`, `.example`, `.invalid` or `.test` |
+| a clone URL | `git@github.com:you/repo.git` (also GitLab, Bitbucket, Codeberg, `code.forgejo.org`) |
+| a private hostname | a name with an `example` label: `console.example.ts.net`, `db.example.internal` |
+| an IP address | the documentation ranges `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24` |
+
+Anything else is still reported, including a clone URL on a private forge,
+any other user at a public forge, and a hostname that merely contains the
+letters, such as `notexample.ts.net`. Replace a real address or host with one
+of these. Do not widen the list to make a real one pass.
+
 ## What this does not cover
 
 Nothing here addresses a compromised developer machine, a malicious
