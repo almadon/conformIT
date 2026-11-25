@@ -794,8 +794,16 @@ def _dependabot_entries(text):
     return out
 
 
+def _strip_yaml_comments(text):
+    """Drop `#` comments: at the start of a line or after whitespace. Good
+    enough for dependabot.yml, where no value we read can contain ` #`."""
+    return re.sub(r"(?m)(^|[ \t])#.*$", r"\1", text)
+
+
 def _dep_days(blk, key):
-    m = re.search(r"(?m)^\s*" + key + r":\s*(\d+)", blk)
+    """A key's integer value, in block style (`key: 7` on its own line) or in a
+    flow mapping (`{key: 7, ...}`), quoted or not."""
+    m = re.search(r"(?m)(?:^|[{,])\s*[\"']?" + key + r"[\"']?\s*:\s*[\"']?(\d+)", blk)
     return int(m.group(1)) if m else None
 
 
@@ -884,7 +892,7 @@ def cmd_cooldown(repo):
     # Dependabot: every entry needs a cooldown, and each ecosystem in use needs an entry.
     dep_ok = False
     if dep:
-        entries = _dependabot_entries(read(repo, dep))
+        entries = _dependabot_entries(_strip_yaml_comments(read(repo, dep)))
         have = {e for e, _ in entries}
         short = []
         for e, blk in entries:
