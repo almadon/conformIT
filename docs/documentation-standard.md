@@ -111,6 +111,22 @@ heading, no picture, and a broken relative link. It matches headings by
 meaning, not exact wording ("Install" counts as Getting started), so the
 names above are a guide, not a straitjacket.
 
+**Project-specific sections are allowed.** The check orders only the
+sections named above and ignores any other heading, so a project may add its
+own, most naturally between How it works and Documentation. A heading that
+reads like a standard one ("Design", "Options") is treated as that one.
+
+**The order applies to the repository's root README, which is the only one
+the audit reads.** A module README (a role, a component, a package) is not
+held to it and needs no status blockquote of its own, since the root's
+applies. It opens with its title, one sentence, and then the contract block
+from [`templates/docs/ownership.md`](../templates/docs/ownership.md). Nothing
+checks module READMEs.
+
+**A short, real file beats a recorded skip.** The conditional files above
+may be skipped when there is nothing to say. Where a small project has a few
+true paragraphs to put in one, write them.
+
 **Forks of other people's projects are exempt.** A fork kept to carry a fix
 is not ours to restyle. Mark it with
 `<!-- conformit: exempt fork of OWNER/REPO -->` in its README, or leave it

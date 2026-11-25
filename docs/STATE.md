@@ -5,7 +5,14 @@ have been applied to a real project and the process has settled. Per
 [documentation-standard.md](documentation-standard.md), `STATE.md` is the
 one document with an expiry.
 
-**Last updated:** 2026-11-26. The em dash rule is now scoped to prose and
+**Last updated:** 2026-11-27. First adoption reports (decision #33): fixed a
+cooldown-check bug that reported compliant inline Dependabot mappings as unset,
+added a per-line floating-ref exception and a Home Assistant manifest warning,
+and documented module READMEs and extra sections. Open: two sensitive-content
+scanner false positives (email-shaped clone URLs, placeholder tailnet hosts)
+await a maintainer decision.
+
+Earlier, 2026-11-26. The em dash rule is now scoped to prose and
 comments, not code (decision #32): the standard says so, and the repo's own
 check command reads Markdown only. The audit scanner was already prose-only.
 

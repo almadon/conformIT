@@ -1895,3 +1895,70 @@ fully exempt, that line comes out.
 **Cost.** A dash in a code comment is no longer caught by any tool. **What
 would justify revisiting.** Dashes turning up in comments often enough to
 matter, which would argue for the opt-in per-language check.
+
+## 33. First adoption reports: exceptions, gaps and a parser bug
+
+Two projects ran the new checks: ha-niimbridge, and Consigliere's Cmdr (an
+interim report; its README restructure, diagram and viewport tests are not
+done). The Projects Coordinator passed on one of the same findings.
+
+**A bug in my cooldown check.** `_dep_days` matched `default-days` and
+`semver-major-days` only at the start of a line, so a compliant inline
+mapping, `cooldown: {default-days: 7, semver-major-days: 14}`, was reported
+as unset. Both reports were right. I reproduced it with eight fixtures before
+changing anything: quoted and multi-line mappings failed too, and a second
+bug showed up, where a commented-out `cooldown:` counted as present. Fixed by
+stripping comments and accepting a key at the start of a line or after `{` or
+`,`. All eight now behave, and on Consigliere's real file (`021490c`) the
+false warning is gone while its two true ones remain. My earlier fixtures for
+#26 used block style only, which is why this shipped. A whole entry written in
+flow style (`- {package-ecosystem: npm, ...}`) is still not read. The check
+parses text rather than YAML, to keep the helper standard-library only.
+
+**From ha-niimbridge.**
+
+- *Floating refs that a project's documentation requires*
+  (`hacs/action@main`, `home-assistant/actions/hassfest@master`; a search
+  found both in the documented examples). **Not allowlisted.** A floating ref
+  adopts whatever was published a minute ago, which is what #26 exists to
+  slow down. Instead a line may carry `# conformit:allow-floating <reason>`,
+  which records a deliberate exception where a reviewer sees it. The check
+  does not judge the reason. The search also noted that some projects pin the
+  HACS action to a tag, which is better where it works.
+- *`manifest.json` requirements.* Home Assistant integrations declare Python
+  dependencies there. Dependabot does not read them (as reported; VERIFY).
+  Renovate's documentation describes a Home Assistant manifest manager; that
+  it matches `custom_components/` paths in a given repo is VERIFY. The
+  cooldown check now warns when such requirements exist with no Renovate
+  config.
+- *"No Dependabot config" for a file that existed.* The file was untracked.
+  The audit reads tracked files by design, so this stays, and the usage text
+  now says to `git add` first.
+- *Extra README sections and short conditional files:* both allowed, now
+  stated in `documentation-standard.md`.
+- *HACS image rendering* is still VERIFY.
+
+**From the Cmdr report.**
+
+- The audit reads only the root README, so a role README gets no structure
+  check. Now stated, with what a module README should open with. That settles
+  the apparent clash between "opens with the contract block" and the root
+  README order.
+- "Add the cooldown config for the host" in my dispatch meant the **git
+  host** (GitHub or Forgejo), not the machine a runner is on. Runner image
+  refresh is a separate item (#26).
+- Its other warnings (no text size control, no viewport test, no
+  accessibility statement) it reports as true.
+- **Not fixed: two scanner FAILs it calls false positives.** Clone URLs such
+  as `git@github.com:you/fleet.git` read as email addresses, and placeholder
+  `*.example.ts.net` URLs read as private hosts. It checked six of the hits;
+  the rest are VERIFY. The email case is now reported by two projects and
+  happened here too (#27). These are FAILs, so they cost more than the
+  warnings above. Changing what the sensitive-content scanners ignore falls
+  under `security-posture.md` rule 9 and wants the maintainer's decision: an
+  over-broad exemption would hide a real address or host.
+
+**Cost.** The exception marker can be used to silence a warning that should
+have been fixed. **What would justify revisiting.** Markers appearing without
+real reasons; or a third parser bug, which would argue for a real YAML parser
+despite the dependency.
