@@ -1962,3 +1962,44 @@ parses text rather than YAML, to keep the helper standard-library only.
 have been fixed. **What would justify revisiting.** Markers appearing without
 real reasons; or a third parser bug, which would argue for a real YAML parser
 despite the dependency.
+
+## 34. Correction: Dependabot cannot wait longer for major versions of Actions or images
+
+**I was wrong, and the error went out to other projects.** #26's check
+required a 14-day wait for major versions on every Dependabot entry,
+`semver-major-days: 14` in practice, and my dispatch to the project sessions
+told them to configure `default-days: 7, semver-major-days: 14`. Dependabot
+accepts `default-days` for every ecosystem but the `semver-*-days` keys only
+for some. The support table in GitHub's Dependabot options reference, read
+from the `github/docs` source on 2026-11-25, marks them **not supported** for
+GitHub Actions, Docker, Docker Compose, Terraform, Bazel, Devcontainers, git
+submodules, Helm, Nix flakes, OpenTofu, pre-commit and vcpkg. npm, pip, uv
+and Cargo support them. Several public repositories report that Dependabot's
+validator rejects the key where unsupported; if so, the whole file fails and
+**updates stop silently**. That consequence is reported, not reproduced here.
+
+I marked parts of #26 VERIFY but not this, because I never asked whether the
+keys applied to every ecosystem. It surfaced while checking another point.
+The same read settles one #26 VERIFY: with no `default-days`, Dependabot
+applies a 3-day cooldown, and cooldown never applies to security updates.
+
+**Chosen.** For the ecosystems that lack the keys, the check requires only
+`default-days` of 7 or more, and warns if a `semver-*-days` key is present so
+it gets removed. Ecosystems that support the keys still need 14 days for
+majors. This leaves a real gap in the policy: Dependabot cannot make only
+major Action or image updates wait 14 days. Two ways to cover it, neither
+chosen for projects here: set `default-days: 14` on those entries, which
+delays patches too; or keep 7 and have whoever reviews hold a major for
+another week. Renovate can express the rule through `packageRules`. Which to
+use is a policy question for the maintainer.
+
+**What affected projects must do.** Remove `semver-*-days` from
+`github-actions`, `docker` and `docker-compose` entries, then check the
+repository's Dependabot page (under Insights, Dependency graph) for a config
+error. Consigliere's file at `021490c` has the key on its `github-actions`
+and `docker` entries. I found no Dependabot run or pull request there, which
+does not show whether it was rejected or has not run (VERIFY).
+
+**Cost.** The standard is weaker for Actions and images than it claimed.
+**What would justify revisiting.** GitHub adding the keys for more
+ecosystems; the table is dated for that reason.

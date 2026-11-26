@@ -760,6 +760,13 @@ def cmd_eol(repo):
 
 COOLDOWN_DAYS = 7
 COOLDOWN_MAJOR_DAYS = 14
+# Dependabot takes `default-days` everywhere but the `semver-*-days` keys only
+# for some ecosystems. These do not support them, per the support table in
+# GitHub's Dependabot options reference (read 2026-11-25). See decision #34.
+DEPENDABOT_NO_SEMVER = {
+    "bazel", "devcontainers", "docker", "docker-compose", "github-actions", "gitsubmodule",
+    "helm", "nix", "opentofu", "pre-commit", "terraform", "vcpkg",
+}
 RENOVATE_FILES = {
     "renovate.json", "renovate.json5", ".renovaterc", ".renovaterc.json",
     ".github/renovate.json", ".github/renovate.json5",
@@ -901,9 +908,13 @@ def cmd_cooldown(repo):
                 continue
             d = _dep_days(blk, "default-days")
             mj = _dep_days(blk, "semver-major-days")
+            if e in DEPENDABOT_NO_SEMVER and re.search(r"semver-(major|minor|patch)-days", blk):
+                short.append(f"{e}: has semver-*-days, which Dependabot does not support there (remove it; it may make Dependabot reject the file)")
             if d is None or d < COOLDOWN_DAYS:
                 short.append(f"{e}: default-days {d if d is not None else 'unset'} (want {COOLDOWN_DAYS}+)")
             major = mj if mj is not None else d
+            if e in DEPENDABOT_NO_SEMVER:
+                continue  # a separate wait for majors cannot be expressed here
             if major is None or major < COOLDOWN_MAJOR_DAYS:
                 short.append(f"{e}: major versions wait {major if major is not None else 'unset'} days (want {COOLDOWN_MAJOR_DAYS}+)")
         uncovered = [name for name, covers in eco.items() if covers and not (covers & have)]
@@ -959,7 +970,7 @@ def cmd_cooldown(repo):
     for msg in problems:
         emit("WARN", msg)
     if not problems:
-        emit("PASS", f"release-age cooldown configured ({COOLDOWN_DAYS} days, {COOLDOWN_MAJOR_DAYS} for major) and base images pinned by digest")
+        emit("PASS", f"release-age cooldown configured ({COOLDOWN_DAYS} days, {COOLDOWN_MAJOR_DAYS} for major versions where the updater can express it) and base images pinned by digest")
 
 
 def main(argv):
