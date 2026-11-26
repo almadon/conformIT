@@ -136,6 +136,13 @@ can still take today's release.
 | uv | `pyproject.toml`: `[tool.uv]` with `exclude-newer = "7 days"` (VERIFY: reported to need uv 0.9.17 or later) |
 | pip | VERIFY: no setting confirmed here |
 
+These settings act when versions are **chosen**, as in `npm install` or an
+update. `npm ci` installs exactly what the lockfile lists, and the
+ha-propsense session reports that it ignores `min-release-age` (VERIFY). So a
+release that is already in the lockfile is installed however new it is. The
+wait has to happen before the lockfile changes: in the updater, in the local
+install that writes it, and in the review of that change.
+
 ## Runner and host images
 
 A pinned file does nothing for an image cached on a runner. Pull on a weekly
