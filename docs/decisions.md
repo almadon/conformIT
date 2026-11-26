@@ -2003,3 +2003,38 @@ does not show whether it was rejected or has not run (VERIFY).
 **Cost.** The standard is weaker for Actions and images than it claimed.
 **What would justify revisiting.** GitHub adding the keys for more
 ecosystems; the table is dated for that reason.
+
+## 35. Placeholder addresses pass the scanners, and a hidden-line bug is fixed
+
+Two projects reported the email and private-address checks failing on
+placeholders (also seen here, #27). The maintainer approved narrow
+exemptions and asked that URLs and addresses be made generic.
+
+**Chosen.** The email check now also ignores addresses under reserved
+documentation domains (subdomains of `example.com`, `.org`, `.net`, and
+`.example`, `.invalid`, `.test`) and the exact addresses `git@` at
+`github.com`, `gitlab.com`, `bitbucket.org`, `codeberg.org` and
+`code.forgejo.org`. The private-address check ignores a hostname with a label
+that is exactly `example`. `security-posture.md` tells projects which generic
+values to use. The secret scanners are unchanged.
+
+**A bug found while reading the code.** The private-address check removed
+exempt addresses by dropping the whole line, so a real private address on the
+same line as a documentation address or `127.0.0.1` was **not reported**. It
+now removes only the exempt token. A repo that passed before may fail now,
+correctly.
+
+**Verified** with a fixture of invented addresses, running the scanners before
+and after: the placeholders stopped being flagged; a private-forge clone URL,
+a personal address, another user at github.com, a look-alike domain,
+`notexample.ts.net` and an ordinary tailnet host are still flagged; and the
+mixed line the old code missed is now flagged. Consigliere's own hits were not
+re-checked, and it opened only some of them.
+
+**Not done: downgrading private addresses for private repositories.** It was
+recommended, and the maintainer asked for it to be explained before deciding.
+A private fleet repo that exists to list addresses still fails this check.
+
+**Cost.** Someone could publish a real host under an `example` label and it
+would pass. That takes naming it that way on purpose. **What would justify
+revisiting.** Any real address found to have passed through one of these.
